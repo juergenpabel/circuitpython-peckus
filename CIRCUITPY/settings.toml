@@ -1,0 +1,5 @@
+CIRCUITPY_BLE_NAME="PMPEFV"
+
+APPLICATION_CONFIGURATION="/conf.d/demo-btn.json"
+PAYLOAD_FILENAME="/password.txt"
+

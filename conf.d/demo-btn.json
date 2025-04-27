@@ -1,0 +1,183 @@
+{
+   "name" : "DEMO: Minimal (only button-press required to unlock, enforced relock after configured time)",
+   "parameters" : {
+	  "payload_filename":    "$PECKUS_PAYLOAD_FILENAME=/PAYLOAD.TXT",
+	  "relock_timeout_secs": "$PECKUS_RELOCK_TIMEOUT_SECS=300"
+   },
+   "workflows" : [
+      {
+         "initial-state" : "INIT:START",
+         "name" : "INIT",
+         "states" : [
+            {
+               "actions" : [],
+               "name" : "INIT:START",
+               "transitions" : [
+                  {
+                     "conditions" : [
+                        "storage:mounted=TRUE",
+                        "storage:readonly=TRUE"
+                     ],
+                     "state" : "INIT:LED-ON"
+                  }
+               ]
+            },
+            {
+               "actions" : [
+                  "board:led=green:ON",
+                  "timeout:seconds=BLINK:1"
+               ],
+               "name" : "INIT:LED-ON",
+               "transitions" : [
+                  {
+                     "conditions" : [
+                        "timeout:expired=BLINK"
+                     ],
+                     "state" : "INIT:LED-OFF"
+                  }
+               ]
+            },
+            {
+               "actions" : [
+                  "board:led=green:OFF",
+                  "timeout:seconds=BLINK:1"
+               ],
+               "name" : "INIT:LED-OFF",
+               "transitions" : [
+                  {
+                     "conditions" : [
+                        "timeout:expired=BLINK"
+                     ],
+                     "state" : "INIT:LED-ON"
+                  }
+               ]
+            }
+         ]
+      },
+      {
+         "initial-state" : "INSTALL:START",
+         "name" : "INSTALL",
+         "states" : [
+            {
+               "actions" : [],
+               "name" : "INSTALL:START",
+               "transitions" : [
+                  {
+                     "conditions" : [
+                        "peckus:payload=UNINITIALIZED",
+                        "storage:mounted=TRUE",
+                        "storage:readonly=TRUE",
+                        "storage:exists={payload_filename}"
+                     ],
+                     "state" : "INSTALL:PAYLOAD"
+                  }
+               ]
+            },
+            {
+               "actions" : [
+                  "peckus:install={payload_filename}"
+               ],
+               "name" : "INSTALL:PAYLOAD",
+               "transitions" : [
+                  {
+                     "conditions" : [
+                        "peckus:payload=INSTALLED"
+                     ],
+                     "state" : "INSTALL:READY"
+                  }
+               ]
+            },
+            {
+               "actions" : [
+                  "system:reset=NOW"
+               ],
+               "name" : "INSTALL:READY",
+               "transitions" : []
+            }
+         ]
+      },
+      {
+         "initial-state" : "UNLOCK:START",
+         "name" : "UNLOCK",
+         "states" : [
+            {
+               "actions" : [],
+               "name" : "UNLOCK:START",
+               "transitions" : [
+                  {
+                     "conditions" : [
+                        "storage:mounted=TRUE",
+                        "storage:readonly=FALSE",
+                        "peckus:payload=INSTALLED"
+                     ],
+                     "state" : "UNLOCK:CHECK"
+                  }
+               ]
+            },
+            {
+               "actions" : [
+                  "board:led=red:ON"
+               ],
+               "name" : "UNLOCK:CHECK",
+               "transitions" : [
+                  {
+                     "conditions" : [
+                        "reset:reason=RESET_PIN"
+                     ],
+                     "state" : "UNLOCK:EXEC"
+                  }
+               ]
+            },
+            {
+               "actions" : [
+                  "peckus:unlock={payload_filename}",
+                  "board:led=red:OFF"
+               ],
+               "name" : "UNLOCK:EXEC",
+               "transitions" : []
+            }
+         ]
+      },
+      {
+         "initial-state" : "RELOCK:START",
+         "name" : "RELOCK",
+         "states" : [
+            {
+               "actions" : [],
+               "name" : "RELOCK:START",
+               "transitions" : [
+                  {
+                     "conditions" : [
+                        "peckus:payload=UNLOCKED"
+                     ],
+                     "state" : "RELOCK:TIMEOUT"
+                  }
+               ]
+            },
+            {
+               "actions" : [
+                  "timeout:seconds=RELOCK:{relock_timeout_secs}",
+                  "board:led=green:ON"
+               ],
+               "name" : "RELOCK:TIMEOUT",
+               "transitions" : [
+                  {
+                     "conditions" : [
+                        "timeout:expired=RELOCK"
+                     ],
+                     "state" : "RELOCK:EXEC"
+                  }
+               ]
+            },
+            {
+               "actions" : [
+                  "board:led=green:OFF",
+                  "system:reset=NOW"
+               ],
+               "name" : "RELOCK:EXEC",
+               "transitions" : []
+            }
+         ]
+      }
+   ]
+}
