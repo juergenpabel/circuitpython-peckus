@@ -1,7 +1,7 @@
 from re import match as re_match
 
 
-class TransitionConditions:
+class Conditions:
 
     def __init__(self, conditions, appdata: dict):
         if 'condition_classes' not in appdata:

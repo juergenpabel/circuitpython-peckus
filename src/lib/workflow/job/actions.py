@@ -1,9 +1,14 @@
+from time import monotonic as time_monotonic
 from re import match as re_match
+from traceback import print_exception as traceback_print_exception
+
+from . import AbstractJob
 
 
-class TransitionActions:
+class Job(AbstractJob):
 
-    def __init__(self, actions: list, appdata: dict):
+    def __init__(self, actions: dict, appdata: dict):
+        super().__init__('actions', 'default')
         if 'action_classes' not in appdata:
             appdata['action_classes'] =  {}
         self.actions = []
@@ -22,10 +27,19 @@ class TransitionActions:
                 self.actions.append(appdata['action_classes'][action_class](action_method, action_params, appdata))
 
 
-    def __call__(self) -> None:
+    def begin(self) -> None:
         for action in self.actions:
             try:
                 action()
             except Exception as e:
-                print(f"Action<{action.action_class}>.{action.action_method}() raised an exception: {e}")
+                print(f"Action<{action.action_class}>.{action.action_method.__name__.split('.').pop()}() raised an exception: {e}")
+                traceback_print_exception(e)
+
+
+    def update(self) -> None:
+        pass
+
+
+    def finish(self) -> None:
+        pass
 

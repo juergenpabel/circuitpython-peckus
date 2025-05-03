@@ -33,7 +33,8 @@ class Action(AbstractAction):
 
     def install(self) -> None:
         if self.app_data['status']['payload'] != StatusPayload.UNINITIALIZED:
-            raise ValueError(f"Action<peckus>.install('{self.peckus_params}') not valid with payload status '{str(self.app_data['status']['payload'])}' (only valid in '{StatusPayload.UNINITIALIZED}')")
+            raise ValueError(f"Action<peckus>.install('{self.peckus_params}') not valid with payload status" \
+                              "'{str(self.app_data['status']['payload'])}' (only valid in '{StatusPayload.UNINITIALIZED}')")
         try:
             stat = None
             try:
@@ -44,7 +45,8 @@ class Action(AbstractAction):
                 nvm_offset_payload = self.app_data['nvm']['payload']['offset']
                 nvm_length_payload = self.app_data['nvm']['payload']['length']
                 if stat[6] >= nvm_length_payload-2:
-                    raise MemoryError(f"Action<peckus>.install('{self.peckus_params}') is too big for NVM payload are ({stat[6]} bytes, but NVM payload is only {nvm_length_payload-2} bytes; 2 additional bytes are for metadata)")
+                    raise MemoryError(f"Action<peckus>.install('{self.peckus_params}') is too big for NVM payload " \
+                                       "({stat[6]} bytes, but NVM payload is only {nvm_length_payload-2} bytes; 2 additional bytes are for metadata)")
                 payload = io_BytesIO()
                 with open(self.peckus_params, 'rb') as f:
                     msgpack_pack(f.read(), payload)
@@ -61,7 +63,8 @@ class Action(AbstractAction):
 
     def unlock(self) -> None:
         if self.app_data['status']['payload'] != StatusPayload.INSTALLED:
-            raise ValueError(f"Action<peckus>.unlock('{self.peckus_params}') not valid with payload status '{str(self.app_data['status']['payload'])}' (only valid in '{StatusPayload.INSTALLED}')")
+            raise ValueError(f"Action<peckus>.unlock('{self.peckus_params}') not valid with payload status " \
+                              "'{str(self.app_data['status']['payload'])}' (only valid in '{StatusPayload.INSTALLED}')")
         try:
             nvm_offset_payload = self.app_data['nvm']['payload']['offset']
             nvm_length_payload = self.app_data['nvm']['payload']['length']

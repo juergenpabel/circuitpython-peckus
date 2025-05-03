@@ -1,4 +1,5 @@
 from microcontroller import reset as microcontroller_reset
+from supervisor import runtime as supervisor_runtime
 from storage import umount as storage_umount
 from os import sync as os_sync
 from time import sleep as time_sleep
@@ -14,15 +15,19 @@ class Action(AbstractAction):
 
 
     def reset(self) -> None:
+        print("PECKUS: resetting system (SOFTWARE)")
         os_sync()
         storage_umount('/')
         microcontroller_reset()
 
 
     def delay(self) -> None:
-        try:
-            if len(self.system_data) > 0:
-                time_sleep(float(self.system_data))
-        except ValueError as e:
-            print(f"Action<system>.delay('{self.peckus_params}'): {e})")
+        if isinstance(self.system_data, int) and self.system_data > 0:
+            time_sleep(self.system_data)
+
+
+    def console(self) -> None:
+        if self.system_data.upper() == 'TRUE':
+            while supervisor_runtime.serial_connected is False:
+                time_sleep(0.1)
 

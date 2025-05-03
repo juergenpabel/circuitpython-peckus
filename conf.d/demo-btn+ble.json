@@ -1,39 +1,116 @@
 {
-	"name": "DEMO: High-Security (Button + BLE)",
+	"name": "DEMO: Button & BLE-Connection",
+	"description": "BLE functionality demo: Protected file is 'PAYLOAD.TXT' (upper case), grant (read-only) access for as long as BLE connection is established upon button-click",
 	"parameters":
 	{
-		"relock_timeout_minutes":       "5",
-		"ble_scan_fallback_addresses":  "11:11:11:11:11:11,22:22:22:22:22:22",
-		"ble_scan_destroyer_addresses": "XX:de:ad:ba:be:XX"
+		"payload_filename":                "${PECKUS_PAYLOAD_FILENAME=/PAYLOAD.TXT}",
+		"relock_ble_reconnect_grace_secs": "${PECKUS_RELOCK_BLE_RECONNECT_GRACE_SECS=15}"
 	},
-	"workflows": 
+	"workflows":
 	[
-		{"name": "SETUP",   "steps":	[{"name": "SETUP:INIT",         "conditions": [{"handlers": ["vault:status=UNPROVISIONED"]}]},
-						 {"name": "SETUP:CONFGURATION", "conditions": [{"handlers": ["vault:command=CONFIGURATION"]}]},
-						 {"name": "SETUP:CONFIGURED",   "conditions": [{"handlers": ["vault:status=CONFIGURED"]}]},
-						 {"name": "SETUP:ENROLLMENT",   "conditions": [{"handlers": ["vault:command=ENROLLMENT"]}]},
-						 {"name": "SETUP:ENROLLED",     "conditions": [{"handlers": ["vault:status=ENROLLED"]}]},
-						 {"name": "SETUP:LOOT",         "conditions": [{"handlers": ["vault:command=LOOT"]}]},
-						 {"name": "SETUP:LOOTED",       "conditions": [{"handlers": ["vault:status=LOOTED"]}]},
-						 {"name": "SETUP:READY",        "conditions": [{"handlers": ["vault:command=READY"]}]}
-						]
+		{
+			"name":"DEPLOY",
+			"initial-state":"DEPLOY:START",
+			"states":
+			[
+				{
+					"name":        "DEPLOY:START",
+					"actions":     [],
+					"transitions": [{"state":"DEPLOY:BLE-PAIR", "conditions":["peckus:payload=UNINITIALIZED", "filesystem:mounted=TRUE", "filesystem:readonly=TRUE"]}],
+					"jobs":        []
+				},
+				{
+					"name":        "DEPLOY:BLE-PAIR",
+					"actions":     ["ble:advertise=TRUE"],
+					"transitions": [{"state":"DEPLOY:PAYLOAD-WAIT", "conditions":["ble:connected=TRUE"]}],
+					"jobs":        [{"job": "led", "name": "blue:blink",  "data": {"states": [{"RED": "OFF", "GREEN": "OFF", "BLUE": "ON",  "millis": 500},
+					                                                                          {"RED": "OFF", "GREEN": "OFF", "BLUE": "OFF", "millis": 500}]}}]
+				},
+				{
+					"name":        "DEPLOY:PAYLOAD-WAIT",
+					"actions":     ["ble:advertise=FALSE"],
+					"transitions": [{"state": "DEPLOY:PAYLOAD-INSTALL", "conditions": ["filesystem:exists={payload_filename}"]}],
+					"jobs":        [{"job": "led", "name": "green:blink", "data": {"states": [{"RED": "OFF", "GREEN": "ON",  "BLUE": "OFF", "millis": 500},
+					                                                                          {"RED": "OFF", "GREEN": "OFF", "BLUE": "OFF", "millis": 500}]}}]
+				},
+				{
+					"name":        "DEPLOY:PAYLOAD-INSTALL",
+					"actions":     ["peckus:install={payload_filename}"],
+					"transitions": [{"state":"DEPLOY:READY", "conditions":["peckus:payload=INSTALLED"]}],
+					"jobs":        [{"job": "led", "name": "white:on",    "data": {"states": [{"RED": "ON",  "GREEN": "ON",  "BLUE": "ON"}]}}]
+				},
+				{
+					"name":       "DEPLOY:READY",
+					"actions":    ["system:reset=NOW"],
+					"transitions": [],
+					"jobs":        []
+				}
+			]
 		},
-		{"name": "UNLOCK",  "steps":	[{"name": "UNLOCK:INIT",        "conditions": [{"handlers": ["vault:status=LOCKED","reset:reason=POWER_ON"]}]},
-						 {"name": "UNLOCK:BTN",         "conditions": [{"handlers": ["reset:reason=RESET_PIN"]}]},
-						 {"name": "UNLOCK:BLE",         "conditions": [{"handlers": ["ble:connections=1+","ble:scan-any={ble_scan_fallback_addresses}"]}]},
-						 {"name": "UNLOCKED"}
-						]
+		{
+			"name":"UNLOCK",
+			"initial-state":"UNLOCK:START",
+			"states":
+			[
+				{
+					"name":        "UNLOCK:START",
+					"actions":     [],
+					"transitions": [{"state": "UNLOCK:BUTTON", "conditions": ["peckus:payload=INSTALLED", "filesystem:mounted=TRUE", "filesystem:readonly=FALSE"]}],
+					"jobs":        []
+				},
+				{
+					"name":        "UNLOCK:BUTTON",
+					"actions":     [],
+					"transitions": [{"state": "UNLOCK:BLE-CONNECT", "conditions": ["system:reset=RESET_PIN"]}],
+					"jobs":        [{"job": "led", "name": "red:on",  "data": {"states": [{"RED": "ON",  "GREEN": "OFF", "BLUE": "OFF"}]}}]
+				},
+				{
+					"name":        "UNLOCK:BLE-CONNECT",
+					"actions":     [],
+					"transitions": [{"state": "UNLOCK:EXEC", "conditions": ["ble:connected=TRUE"]}],
+					"jobs":        [{"job": "led", "name": "red+blue:blink",  "data": {"states": [{"RED": "OFF", "GREEN": "OFF", "BLUE": "ON",  "millis": 500},
+					                                                                              {"RED": "ON",  "GREEN": "OFF", "BLUE": "OFF", "millis": 500}]}}]
+				},
+				{
+					"name":        "UNLOCK:EXEC",
+					"actions":     ["peckus:unlock={payload_filename}"],
+					"transitions": [],
+					"jobs":        []
+				}
+			]
 		},
-		{"name": "RELOCK",  "steps":	[{"name": "RELOCK:INIT",         "conditions": [{"handlers": ["vault:status=UNLOCKED"]}]},
-						 {"name": "RELOCK:CLK+BLE",      "conditions": [{"handlers": ["timeout:minutes={relock_timeout_minutes}#relock", "ble:connections=0"]}, 
-						                                                {"handlers": ["timeout:minutes={relock_timeout_minutes}#relock", "ble:scan-none={ble_scan_fallback_addresses}"]}]},
-						 {"name": "RELOCKED"}
-						]
-		},
-		{"name": "DESTROY", "steps":	[{"name": "DESTROY:INIT", "conditions": [{"handlers": ["vault:status=LOCKED"]}]},
-						 {"name": "DESTROY:BLE",  "conditions": [{"handlers": ["ble:scan-any={ble_scan_destroyer_addresses}"]}]},
-						 {"name": "DESTROYED"}
-						]
+		{
+			"name":"RELOCK",
+			"initial-state":"RELOCK:START",
+			"states":
+			[
+				{
+					"name":        "RELOCK:START",
+					"actions":     [],
+					"transitions": [{"state": "RELOCK:BLE-CONNECTED", "conditions":["peckus:payload=UNLOCKED"]}],
+					"jobs":        []
+				},
+				{
+					"name":        "RELOCK:BLE-CONNECTED",
+					"actions":     [],
+					"transitions": [{"state": "RELOCK:BLE-DISCONNECTED", "conditions":["ble:connected=FALSE"]}],
+					"jobs":        [{"job": "led", "name": "green:on",  "data": {"states": [{"RED": "OFF", "GREEN": "ON", "BLUE": "OFF"}]}}]
+				},
+				{
+					"name":        "RELOCK:BLE-DISCONNECTED",
+					"actions":     ["timeout:seconds=GRACEPERIOD:{relock_ble_reconnect_grace_secs}"],
+					"transitions": [{"state": "RELOCK:BLE-CONNECTED", "conditions": ["ble:connected=TRUE"]},
+					                {"state": "RELOCK:EXEC", "conditions": ["timeout:expired=GRACEPERIOD"]}],
+					"jobs":        [{"job": "led", "name": "green+blue:blink",  "data": {"states": [{"RED": "OFF", "GREEN": "OFF", "BLUE": "ON",  "millis": 500},
+					                                                                                {"RED": "OFF", "GREEN": "ON",  "BLUE": "OFF", "millis": 500}]}}]
+				},
+				{
+					"name":        "RELOCK:EXEC",
+					"actions":     ["system:reset=NOW"],
+					"transitions": [],
+					"jobs":        []
+				}
+			]
 		}
 	]
 }

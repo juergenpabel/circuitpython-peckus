@@ -5,17 +5,19 @@ from . import AbstractCondition
 
 class Condition(AbstractCondition):
 
-    def __init__(self, storage_method: str, storage_criteria: str, app_data: dict):
-        super().__init__("storage", storage_method, app_data)
-        self.storage_criteria = storage_criteria
+    def __init__(self, filesystem_method: str, filesystem_params: str, app_data: dict):
+        super().__init__('filesystem', filesystem_method, app_data)
+        self.filesystem_params = filesystem_params
+
 
     def exists(self) -> bool:
         result = None
         try:
-            result = storage_getmount('/').stat(self.storage_criteria)
+            result = storage_getmount('/').stat(self.filesystem_params)
         except Exception as e:
-            return False
+            pass
         return result is not None
+
 
     def mounted(self) -> bool:
         result = False
@@ -24,8 +26,8 @@ class Condition(AbstractCondition):
                 result = True
         except Exception as e:
             pass
-        return str(result).upper() == self.storage_criteria.upper()
+        return str(result).upper() == self.filesystem_params.upper()
 
     def readonly(self) -> bool:
-        return str(storage_getmount('/').readonly).upper() == self.storage_criteria.upper()
+        return str(storage_getmount('/').readonly).upper() == self.filesystem_params.upper()
 
