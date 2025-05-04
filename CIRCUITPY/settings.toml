@@ -3,12 +3,12 @@ CIRCUITPY_BLE_NAME="PECKUS"
 
 
 # PECKUS core options
-PECKUS_CONFIG_FILENAME="/conf.d/demo-btn+ble.json"
+PECKUS_CONFIG_FILENAME="/peckus.json"
 PECKUS_PAYLOAD_FILENAME="/secret.txt"
-# PECKUS configuration-specific parameters: /conf.d/demo-btn.json
-PECKUS_RELOCK_TIMEOUT_SECS=60
-# PECKUS configuration-specific parameters: /conf.d/demo-btn+ble.json
-PECKUS_RELOCK_BLE_RECONNECT_GRACE_SECS=15
+# PECKUS workflow-specific parameters: /settings.json (conf.d/default.json in repository)
+PECKUS_BLE_PRESENCE="TRUE"
+PECKUS_BLE_PRESENCE_GRACE_SECS=15
+PECKUS_RELOCK_SECS=0
 
 
 # PECKUS security related configuration variables
@@ -19,6 +19,6 @@ PECKUS_BLE_CONSOLE="TRUE"
 # PECKUS debugging (or for evaluation purposes) configuration options
 PECKUS_DEBUG="TRUE"
 PECKUS_DEBUG_BOOTPY_FACTORYRESET_ON_POWERON="TRUE"
+PECKUS_DEBUG_CODEPY_WAIT4CONSOLE="TRUE"
 PECKUS_DEBUG_CODEPY_WAIT4SECONDS=0
-PECKUS_DEBUG_CODEPY_WAIT4CONSOLE="FALSE"
 
