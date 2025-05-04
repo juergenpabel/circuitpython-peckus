@@ -1,6 +1,6 @@
 {
 	"name": "Default configuration",
-	"description": "Default configuration: Button and optionally (depending on parameter configuration) BLE-presence required",
+	"description": "Default configuration: Button and optionally (depending on parameter configuration) BLE-presence required, plus optional relock timeout",
 	"parameters":
 	{
 		"payload_filename":        "${PECKUS_PAYLOAD_FILENAME=/PAYLOAD.TXT}",

@@ -5,7 +5,7 @@ CIRCUITPY_BLE_NAME="PECKUS"
 # PECKUS core options
 PECKUS_CONFIG_FILENAME="/peckus.json"
 PECKUS_PAYLOAD_FILENAME="/secret.txt"
-# PECKUS workflow-specific parameters: /settings.json (conf.d/default.json in repository)
+# PECKUS workflow-specific parameters: /peckus.json (CIRCUITPY/peckus.json in this repository)
 PECKUS_BLE_PRESENCE="TRUE"
 PECKUS_BLE_PRESENCE_GRACE_SECS=15
 PECKUS_RELOCK_SECS=0
