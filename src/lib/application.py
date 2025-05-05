@@ -1,5 +1,6 @@
 from microcontroller import nvm as microcontroller_nvm
 from os import getenv as os_getenv
+from gc import collect as gc_collect
 from io import BytesIO as io_BytesIO
 from msgpack import unpack as msgpack_unpack, \
                     pack as msgpack_pack
@@ -272,6 +273,7 @@ class Application:
                 self.test_payload_nvm()
                 while True:
                     self.smm.Update()
+                    gc_collect()
             except Exception as e:
                 print(f"Application.run(): {e}")
                 traceback_print_exception(e)

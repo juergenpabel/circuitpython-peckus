@@ -18,20 +18,26 @@
 				{
 					"name":        "DEPLOY:START",
 					"actions":     [],
-					"transitions": [{"state":"DEPLOY:BLE-PAIR",     "conditions": ["boolean:true={ble_presence}",  "peckus:payload=UNINITIALIZED", "filesystem:readonly=TRUE"]},
-					                {"state":"DEPLOY:PAYLOAD-WAIT", "conditions": ["boolean:false={ble_presence}", "peckus:payload=UNINITIALIZED", "filesystem:readonly=TRUE"]}],
+					"transitions": [{"state":"DEPLOY:BLE-PAIR",     "conditions": ["boolean:true={ble_presence}",  "peckus:payload=UNINITIALIZED"]},
+					                {"state":"DEPLOY:PAYLOAD-WAIT", "conditions": ["boolean:false={ble_presence}", "peckus:payload=UNINITIALIZED"]}],
 					"jobs":        []
 				},
 				{
 					"name":        "DEPLOY:BLE-PAIR",
 					"actions":     ["ble:advertise=TRUE"],
-					"transitions": [{"state":"DEPLOY:PAYLOAD-WAIT", "conditions": ["ble:connected=TRUE"]}],
+					"transitions": [{"state":"DEPLOY:BLE-PAIRED", "conditions": ["ble:paired=TRUE"]}],
 					"jobs":        [{"job": "led", "name": "blue:blink",  "data": {"states": [{"RED": "OFF", "GREEN": "OFF", "BLUE": "ON",  "millis": 500},
 					                                                                          {"RED": "OFF", "GREEN": "OFF", "BLUE": "OFF", "millis": 500}]}}]
 				},
 				{
+					"name":        "DEPLOY:BLE-PAIRED",
+					"actions":     ["ble:advertise=FALSE", "timeout:seconds=CIRCUITPYTHON-SAVE-BLE-KEYS:5"],
+					"transitions": [{"state": "DEPLOY:PAYLOAD-WAIT", "conditions": ["timeout:expired=CIRCUITPYTHON-SAVE-BLE-KEYS"]}],
+					"jobs":        [{"job": "led", "name": "blue:on", "data": {"states": [{"RED": "OFF",  "GREEN": "OFF",  "BLUE": "ON"}]}}]
+				},
+				{
 					"name":        "DEPLOY:PAYLOAD-WAIT",
-					"actions":     ["ble:advertise=FALSE"],
+					"actions":     [],
 					"transitions": [{"state": "DEPLOY:PAYLOAD-INSTALL", "conditions": ["filesystem:exists={payload_filename}"]}],
 					"jobs":        [{"job": "led", "name": "green:blink", "data": {"states": [{"RED": "OFF", "GREEN": "ON",  "BLUE": "OFF", "millis": 500},
 					                                                                          {"RED": "OFF", "GREEN": "OFF", "BLUE": "OFF", "millis": 500}]}}]
@@ -40,7 +46,7 @@
 					"name":        "DEPLOY:PAYLOAD-INSTALL",
 					"actions":     ["peckus:install={payload_filename}"],
 					"transitions": [{"state":"DEPLOY:READY", "conditions": ["peckus:payload=INSTALLED"]}],
-					"jobs":        [{"job": "led", "name": "white:on",    "data": {"states": [{"RED": "ON",  "GREEN": "ON",  "BLUE": "ON"}]}}]
+					"jobs":        [{"job": "led", "name": "white:on", "data": {"states": [{"RED": "ON",  "GREEN": "ON",  "BLUE": "ON"}]}}]
 				},
 				{
 					"name":       "DEPLOY:READY",

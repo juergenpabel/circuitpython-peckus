@@ -1,5 +1,6 @@
 from microcontroller import reset as microcontroller_reset
-from supervisor import runtime as supervisor_runtime
+from supervisor import runtime as supervisor_runtime, \
+                       reload as supervisor_reload
 from storage import umount as storage_umount
 from os import sync as os_sync
 from time import sleep as time_sleep
@@ -19,6 +20,11 @@ class Action(AbstractAction):
         os_sync()
         storage_umount('/')
         microcontroller_reset()
+
+
+    def reload(self) -> None:
+        print("PECKUS: reloading application")
+        supervisor_reload()
 
 
     def delay(self) -> None:

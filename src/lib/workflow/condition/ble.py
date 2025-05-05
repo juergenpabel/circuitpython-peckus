@@ -20,7 +20,7 @@ class Condition(AbstractCondition):
     def paired(self) -> bool:
         result = False
         for connection in self.app_data['ble']['radio'].connections:
-            result |= connection.paired
+            result = True if connection.paired is True else result
         return str(result).upper() == self.ble_data.upper()
 
 

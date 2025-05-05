@@ -1,4 +1,5 @@
 from storage import getmount as storage_getmount
+from os import stat as os_stat
 
 from . import AbstractCondition
 
@@ -13,7 +14,7 @@ class Condition(AbstractCondition):
     def exists(self) -> bool:
         result = None
         try:
-            result = storage_getmount('/').stat(self.filesystem_params)
+            result = os_stat(self.filesystem_params)
         except Exception as e:
             pass
         return result is not None
@@ -27,6 +28,7 @@ class Condition(AbstractCondition):
         except Exception as e:
             pass
         return str(result).upper() == self.filesystem_params.upper()
+
 
     def readonly(self) -> bool:
         return str(storage_getmount('/').readonly).upper() == self.filesystem_params.upper()
