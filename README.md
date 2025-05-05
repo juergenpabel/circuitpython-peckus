@@ -46,7 +46,7 @@ PECKUS was developed on and for the [nRF52840 Micro Dev Kit USB Dongle by MakerD
 
 ![nRF52840 Micro Dev Kit USB Dongle by MakerDiary](https://circuitpython.org/assets/images/boards/small/nRF52840_micro_dev_kit_usb_dongle.jpg)
 
-Please note that Makerdiary also sell this board with a case, so it looks and feels just as one would expect from a commercial product.
+Please note that [Makerdiary also sell this board with a case](https://makerdiary.com/products/nrf52840-mdk-usb-dongle-w-case), so it looks and feels just as one would expect from a commercial product.
 
 As a circuitpython application, PECKUS should run on any supported board with circuitpython support for:
 1. USB device operations (for exposing its storage as a USB mass-storage device) - especially ESP32 pre-S3 boards lack this capability
