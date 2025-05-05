@@ -10,7 +10,7 @@ USER_GID=`id -g ${USERNAME}`
 
 
 if [ ! -b "${CIRCUITPY_DEVICE}" ]; then
-	echo "ERROR: device '${CIRCUITPY_DEVICE}' doesn't exist"
+	echo "ERROR: device '${CIRCUITPY_DEVICE}' doesn't exist, please specify device-filename as first parameter (/dev/sda1 is default if not provided)"
 	exit 1
 fi
 
