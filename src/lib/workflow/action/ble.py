@@ -18,6 +18,10 @@ class Action(AbstractAction):
             self.app_data['ble']['radio'] = ble_BLERadio(bleio_adapter)
 
 
+    def name(self) -> None:
+        self.app_data['ble']['radio'].name = self.ble_data
+
+
     def advertise(self) -> None:
         if self.ble_data.upper() == 'TRUE':
             advertisement = ble_ProvideServicesAdvertisement(ble_HIDService())

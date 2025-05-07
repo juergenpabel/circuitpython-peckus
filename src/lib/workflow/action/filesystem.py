@@ -57,18 +57,19 @@ class Action(AbstractAction):
 
 
     def file_shred(self) -> None:
-        if storage_getmount('/').readonly is True:
-            raise RuntimeError(f"Action<filesystem>.shred('{self.storge_data}') not valid read-only mounted filesystem")
-        try:
-            stat = os_stat(self.filesystem_data)
-            if stat is not None:
-                with open(self.filesystem_data, 'rb+') as f:
-                    zeros = bytearray(512)
-                    for i in range(0, stat[6], len(zeros)):
+        if self.filesystem_data is not None:
+            if storage_getmount('/').readonly is True:
+                raise RuntimeError(f"Action<filesystem>.shred('{self.storge_data}') not valid read-only mounted filesystem")
+            try:
+                stat = os_stat(self.filesystem_data)
+                if stat is not None:
+                    with open(self.filesystem_data, 'rb+') as f:
+                        zeros = bytearray(512)
+                        for i in range(0, stat[6], len(zeros)):
+                            f.write(zeros)
                         f.write(zeros)
-                    f.write(zeros)
-                os_remove(self.filesystem_data)
-        except Exception as e:
-            pass
-        os_sync()
+                    os_remove(self.filesystem_data)
+            except Exception as e:
+                pass
+            os_sync()
 

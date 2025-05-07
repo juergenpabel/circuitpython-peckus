@@ -58,7 +58,7 @@ As a circuitpython application, PECKUS should run on any supported board with ci
 1. USB device operations (for exposing its storage as a USB mass-storage device) - especially ESP32 pre-S3 boards lack this capability
 2. An internal non-volatile-memory (NVM), exposed by circuitpython as `microcontroller.nvm`, with at least 8KB - this should be available on all but the smallest boards
 
-Obviously, for Bluetooth LE based presence-detection the board must support Bluetooth LE (BLE presence detection can be disabled by setting `PECKUS_BLE_PRESENCE` to `FALSE` in `settings.toml` before deployment).
+Obviously, for Bluetooth LE based presence-detection the board must support Bluetooth LE (BLE presence detection can be disabled by setting `PECKUS_UNLOCK_PRESENCE_BLE` to `FALSE` in `settings.toml` before deployment).
 
 Another hardware dependency are the LED indicators, the current implementation uses the `board.LED_RED`, `board.LED_GREEN` and `board.LED_BLUE` objects - if they are not present the code will still run fine (exception handling, see `src/lib/workflow/job/led.py`), just without any LED indications.
 
@@ -70,7 +70,29 @@ Now the deployment begins: PECKUS loads the workflow configuration (as per `PECK
 
 **Important**: The default configuration (`settings.toml`) has DEBUG settings activated, the most relevant implications:
 - `PECKUS_DEBUG_BOOTPY_FACTORYRESET_ON_POWERON` is set to `TRUE`, therefore any unplugging of the device will reset the PECKUS configuration upon next power-on of the device (it will essentially erase all NVM data and thus be in the uninitialized state again); this is on purpose for evluation/testing purposes - for "production" usage, you'd would most likely change some parameters or even workflow logic anyhow.
-- `PECKUS_USB_CONSOLE` is left activated (`TRUE`), so a connection to circuitpython console/REPL is possible - it is therefore possible to manipulate the device/application even once fully deployed (usage phase)
+- `PECKUS_CONSOLE_USB` is activated (`TRUE`), so a connection to circuitpython console/REPL is possible - it is therefore possible to manipulate the device/application even once fully deployed (usage phase)
+
+
+# Reference: settings.toml (for the default PECKUS configuration)
+The following table lists all implemented settings (as in entries in `settings.toml`), their default values and some explanations.
+| Setting | Default value | Details |
+| ------- | ------------- | ------- |
+| CONFIG_FILENAME | peckus.json | TODO |
+| PAYLOAD_FILENAME | secret.txt | TODO |
+| UNLOCK_PRESENCE_BTN | TRUE | TODO |
+| UNLOCK_PRESENCE_BLE | FALSE | TODO |
+| UNLOCK_PRESENCE_BLE_GRACE_SECS  | 0 | TODO |
+| RELOCK_SECS | 300 | TODO |
+| DEVICE_USB_VENDOR | CIRCUITPYTHON | TODO |
+| DEVICE_USB_PRODUCT | PECKUS | TODO |
+| DEVICE_USB_VID | 239A | TODO |
+| DEVICE_USB_PID | 2025 | TODO |
+| DEVICE_BLE_NAME | PECKUS | TODO |
+| CONSOLE_USB | FALSE | TODO |
+| DEBUG | FALSE | TODO |
+| DEBUG_BOOTPY_FACTORYRESET_ON_POWERON | FALSE | TODO |
+| DEBUG_CODEPY_WAIT4CONSOLE | FALSE | TODO |
+| DEBUG_CODEPY_WAIT4SECONDS | 0 | TODO |
 
 
 # Reference: LED codes (in default PECKUS configuration)

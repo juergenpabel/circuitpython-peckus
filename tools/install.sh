@@ -17,7 +17,7 @@ fi
 echo "PECKUS-INSTALL: unmounting '${CIRCUITPY_DEVICE}'"
 sudo umount -q "${CIRCUITPY_DEVICE}"
 echo "PECKUS-INSTALL: creating FAT-filesystem on '${CIRCUITPY_DEVICE}'"
-sudo mkfs.vfat -g 255/63 -S 512 -s 1 -F 12 -f 1 -n PECKUS -I "${CIRCUITPY_DEVICE}"
+sudo mkfs.vfat -g 255/63 -S 512 -s 1 -F 12 -f 1 -n PECKUS -I "${CIRCUITPY_DEVICE}" >/dev/null
 if [ $? -ne 0 ]; then
 	echo "ERROR mkfs.vfat"
 	exit 1
@@ -45,6 +45,9 @@ fi
 echo "PECKUS-INSTALL: unmounting '${CIRCUITPY_DEVICE}'"
 sudo umount -q "${CIRCUITPY_MOUNT}"
 sudo rmdir "${CIRCUITPY_MOUNT}"
+echo "PECKUS-INSTALL: syncing"
+sudo sync
+sleep 1
 echo "PECKUS-INSTALL: DONE!"
 echo "Please remove and re-attach device to start PECKUS deployment"
 

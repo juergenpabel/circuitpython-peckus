@@ -4,10 +4,8 @@ from storage import getmount as storage_getmount, \
                     remount as storage_remount, \
                     umount as storage_umount
 from io import BytesIO as io_BytesIO
-from os import getenv as os_getenv, \
-               stat as os_stat, \
-               sync as os_sync, \
-               remove as os_remove
+from os import stat as os_stat, \
+               sync as os_sync
 from time import sleep as time_sleep
 from msgpack import unpack as msgpack_unpack, \
                     pack as msgpack_pack
@@ -74,7 +72,7 @@ class Action(AbstractAction):
             os_sync()
             self.app_data['peckus']['rootfs'] = storage_getmount('/')
             storage_umount('/')
-            time_sleep(1.5) #TODO: make configurable via settings.toml (getenv before umount)
+            time_sleep(1.5) # TODO: config setting (Application.configuration not app_data)
             storage_mount(self.app_data['peckus']['rootfs'], '/', readonly=False)
             self.app_data['status']['payload'] = StatusPayload.UNLOCKED
         except Exception as e:

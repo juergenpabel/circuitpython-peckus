@@ -1,0 +1,174 @@
+{
+	"name": "Default configuration",
+	"description": "Default configuration: Button- and BLE-presence configurable, plus optional relock timeout",
+	"settings":
+	{
+		"CONFIG_FILENAME":                       {"default": "peckus.json",   "validator": "string"},
+		"PAYLOAD_FILENAME":                      {"default": "secret.txt",    "validator": "string"},
+		"UNLOCK_PRESENCE_BTN":                   {"default": "TRUE",          "validator": "boolean"},
+		"UNLOCK_PRESENCE_BLE":                   {"default": "FALSE",         "validator": "boolean"},
+		"UNLOCK_PRESENCE_BLE_GRACE_SECS":        {"default": "0",             "validator": "integer"},
+		"RELOCK_SECS":                           {"default": "300",           "validator": "integer"},
+		"DEVICE_USB_VENDOR":                     {"default": "CIRCUITPYTHON", "validator": "string"},
+		"DEVICE_USB_PRODUCT":                    {"default": "PECKUS",        "validator": "string"},
+		"DEVICE_USB_VID":                        {"default": "239A",          "validator": "string"},
+		"DEVICE_USB_PID":                        {"default": "2025",          "validator": "string"},
+		"DEVICE_BLE_NAME":                       {"default": "PECKUS",        "validator": "string"},
+		"CONSOLE_USB":                           {"default": "FALSE",         "validator": "boolean"},
+		"DEBUG":                                 {"default": "FALSE",         "validator": "boolean"},
+		"DEBUG_BOOTPY_FACTORYRESET_ON_POWERON":  {"default": "FALSE",         "validator": "boolean"},
+		"DEBUG_CODEPY_WAIT4CONSOLE":             {"default": "FALSE",         "validator": "boolean"},
+		"DEBUG_CODEPY_WAIT4SECONDS":             {"default": "0",             "validator": "integer"}
+	},
+	"application":
+	{
+		"parameters":
+		{
+			"payload_filename":               "${PAYLOAD_FILENAME}",
+			"unlock_presence_btn":            "${UNLOCK_PRESENCE_BTN}",
+			"unlock_presence_ble":            "${UNLOCK_PRESENCE_BLE}",
+			"unlock_presence_ble_grace_secs": "${UNLOCK_PRESENCE_BLE_GRACE_SECS}",
+			"relock_secs":                    "${RELOCK_SECS}",
+			"device_ble_name":                "${DEVICE_BLE_NAME}"
+		},
+		"workflows":
+		[
+			{
+				"name":"DEPLOY",
+				"initial-state":"DEPLOY:START",
+				"states":
+				[
+					{
+						"name":        "DEPLOY:START",
+						"actions":     [],
+						"transitions": [{"state":"DEPLOY:BLE-PAIR",     "conditions": ["boolean:true={unlock_presence_ble}",  "peckus:payload=UNINITIALIZED"]},
+						                {"state":"DEPLOY:PAYLOAD-WAIT", "conditions": ["boolean:false={unlock_presence_ble}", "peckus:payload=UNINITIALIZED"]}],
+						"jobs":        []
+					},
+					{
+						"name":        "DEPLOY:BLE-PAIR",
+						"actions":     ["ble:name={device_ble_name}", "ble:advertise=TRUE"],
+						"transitions": [{"state":"DEPLOY:BLE-PAIRED", "conditions": ["ble:paired=TRUE"]}],
+						"jobs":        [{"job": "led", "name": "blue:blink",  "data": {"states": [{"RED": "OFF", "GREEN": "OFF", "BLUE": "ON",  "millis": 500},
+						                                                                          {"RED": "OFF", "GREEN": "OFF", "BLUE": "OFF", "millis": 500}]}}]
+					},
+					{
+						"name":        "DEPLOY:BLE-PAIRED",
+						"actions":     ["ble:advertise=FALSE", "timeout:seconds=SAVE-BLE-KEYS:5"],
+						"transitions": [{"state": "DEPLOY:PAYLOAD-WAIT", "conditions": ["timeout:expired=SAVE-BLE-KEYS"]}],
+						"jobs":        [{"job": "led", "name": "blue:on", "data": {"states": [{"RED": "OFF",  "GREEN": "OFF",  "BLUE": "ON"}]}}]
+					},
+					{
+						"name":        "DEPLOY:PAYLOAD-WAIT",
+						"actions":     [],
+						"transitions": [{"state": "DEPLOY:PAYLOAD-INSTALL", "conditions": ["filesystem:exists={payload_filename}"]}],
+						"jobs":        [{"job": "led", "name": "green:blink", "data": {"states": [{"RED": "OFF", "GREEN": "ON",  "BLUE": "OFF", "millis": 500},
+						                                                                          {"RED": "OFF", "GREEN": "OFF", "BLUE": "OFF", "millis": 500}]}}]
+					},
+					{
+						"name":        "DEPLOY:PAYLOAD-INSTALL",
+						"actions":     ["peckus:install={payload_filename}"],
+						"transitions": [{"state":"DEPLOY:READY", "conditions": ["peckus:payload=INSTALLED"]}],
+						"jobs":        [{"job": "led", "name": "white:on", "data": {"states": [{"RED": "ON",  "GREEN": "ON",  "BLUE": "ON"}]}}]
+					},
+					{
+						"name":       "DEPLOY:READY",
+						"actions":    ["system:reset=NOW"],
+						"transitions": [],
+						"jobs":        []
+					}
+				]
+			},
+			{
+				"name":"UNLOCK",
+				"initial-state":"UNLOCK:START",
+				"states":
+				[
+					{
+						"name":        "UNLOCK:START",
+						"actions":     [],
+						"transitions": [{"state": "UNLOCK:BUTTON", "conditions": ["peckus:payload=INSTALLED", "boolean:true={unlock_presence_btn}"]},
+						                {"state": "UNLOCK:BLE",    "conditions": ["peckus:payload=INSTALLED", "boolean:false={unlock_presence_btn}"]}],
+						"jobs":        []
+					},
+					{
+						"name":        "UNLOCK:BUTTON",
+						"actions":     [],
+						"transitions": [{"state": "UNLOCK:BLE",  "conditions": ["button:reset=TRUE", "boolean:true={unlock_presence_ble}"]},
+						                {"state": "UNLOCK:EXEC", "conditions": ["button:reset=TRUE", "boolean:false={unlock_presence_ble}"]}],
+						"jobs":        [{"job": "led", "name": "red:on",  "data": {"states": [{"RED": "ON",  "GREEN": "OFF", "BLUE": "OFF"}]}}]
+					},
+					{
+						"name":        "UNLOCK:BLE",
+						"actions":     ["ble:name={device_ble_name}", "timeout:seconds=UNLOCK-BLE:{unlock_presence_ble_grace_secs}"],
+						"transitions": [{"state": "UNLOCK:RESET", "conditions": ["timeout:expired=UNLOCK-BLE"]},
+						                {"state": "UNLOCK:EXEC",  "conditions": ["ble:connected=TRUE"]}],
+						"jobs":        [{"job": "led", "name": "red+blue:blink",  "data": {"states": [{"RED": "OFF", "GREEN": "OFF", "BLUE": "ON",  "millis": 500},
+						                                                                              {"RED": "ON",  "GREEN": "OFF", "BLUE": "OFF", "millis": 500}]}}]
+					},
+					{
+						"name":        "UNLOCK:EXEC",
+						"actions":     ["peckus:unlock={payload_filename}"],
+						"transitions": [],
+						"jobs":        []
+					},
+					{
+						"name":        "UNLOCK:RESET",
+						"actions":     ["system:reset=NOW"],
+						"transitions": [],
+						"jobs":        []
+					}
+				]
+			},
+			{
+				"name":"RELOCK",
+				"initial-state":"RELOCK:START",
+				"states":
+				[
+					{
+						"name":        "RELOCK:START",
+						"actions":     [],
+						"transitions": [{"state": "RELOCK:UNLOCKED", "conditions": ["peckus:payload=UNLOCKED"]}],
+						"jobs":        []
+					},
+					{
+						"name":        "RELOCK:UNLOCKED",
+						"actions":     ["timeout:seconds=RELOCK-TIMEOUT:{relock_secs}"],
+						"transitions": [{"state": "RELOCK:BLE-CONNECTED", "conditions": ["boolean:true={unlock_presence_ble}"]},
+						                {"state": "RELOCK:TIMEOUT",       "conditions": ["boolean:false={unlock_presence_ble}"]}],
+						"jobs":        [{"job": "led", "name": "green:on",  "data": {"states": [{"RED": "OFF", "GREEN": "ON", "BLUE": "OFF"}]}}]
+					},
+					{
+						"name":        "RELOCK:BLE-CONNECTED",
+						"actions":     [],
+						"transitions": [{"state": "RELOCK:BLE-DISCONNECTED", "conditions": ["ble:connected=FALSE"]},
+						                {"state": "RELOCK:EXEC",             "conditions": ["timeout:expired=RELOCK-TIMEOUT"]}],
+						"jobs":        [{"job": "led", "name": "green:on",  "data": {"states": [{"RED": "OFF", "GREEN": "ON", "BLUE": "OFF"}]}}]
+					},
+					{
+						"name":        "RELOCK:BLE-DISCONNECTED",
+						"actions":     ["timeout:seconds=BLE-DISCONNECTED:{unlock_presence_ble_grace_secs}"],
+						"transitions": [{"state": "RELOCK:BLE-CONNECTED", "conditions": ["ble:connected=TRUE"]},
+						                {"state": "RELOCK:EXEC",          "conditions": ["timeout:expired=BLE-DISCONNECTED"]},
+						                {"state": "RELOCK:EXEC",          "conditions": ["timeout:expired=RELOCK-TIMEOUT"]}],
+						"jobs":        [{"job": "led", "name": "green+blue:blink",  "data": {"states": [{"RED": "OFF", "GREEN": "OFF", "BLUE": "ON",  "millis": 500},
+						                                                                                {"RED": "OFF", "GREEN": "ON",  "BLUE": "OFF", "millis": 500}]}}]
+					},
+					{
+						"name":        "RELOCK:RELOCK-TIMEOUT",
+						"actions":     [],
+						"transitions": [{"state": "RELOCK:EXEC", "conditions": ["timeout:expired=RELOCK-TIMEOUT"]}],
+						"jobs":        [{"job": "led", "name": "green:on",  "data": {"states": [{"RED": "OFF", "GREEN": "ON", "BLUE": "OFF"}]}}]
+					},
+					{
+						"name":        "RELOCK:EXEC",
+						"actions":     ["system:reset=NOW"],
+						"transitions": [],
+						"jobs":        []
+					}
+				]
+			}
+		]
+	}
+}
+

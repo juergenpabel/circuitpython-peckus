@@ -28,8 +28,10 @@ class Action(AbstractAction):
 
 
     def delay(self) -> None:
-        if isinstance(self.system_data, int) and self.system_data > 0:
-            time_sleep(self.system_data)
+        try:
+            time_sleep(int(self.system_data))
+        except ValueError:
+            pass
 
 
     def console(self) -> None:
