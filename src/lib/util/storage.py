@@ -14,7 +14,6 @@ class Storage(object):
 
     def load(self) -> bool:
         self.data = DataStream('sleep_memory').load(microcontroller_nvm, self.nvm_offset, self.nvm_length)
-        print(f"storage: load={self.data}")
         if isinstance(self.data, dict) is False:
             self.data = {}
             self.save()
@@ -27,7 +26,6 @@ class Storage(object):
 
 
     def clear(self) -> bool:
-        print(f"storage: clear")
         self.data = {}
         return self.save()
 
@@ -37,10 +35,8 @@ class Storage(object):
         if value_old != value_new:
             if value_new is not None:
                 self.data[key] = value_new
-                print(f"storage: {key}={value_new}")
             else:
                 del self.data[key]
-                print(f"storage: deleted {key}")
             self.save()
 
 

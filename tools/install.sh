@@ -44,9 +44,14 @@ if [ $? -ne 0 ]; then
 	exit 1
 fi
 
-echo "PECKUS-INSTALL: cross-compiling MPY files on '${CIRCUITPY_MOUNT}/lib/{cpstatemachine,peckus}' (might take about 15 seconds)"
-find "${CIRCUITPY_MOUNT}/lib/cpstatemachine/" "${CIRCUITPY_MOUNT}/lib/peckus/" -name "*.py" -type f -exec ../../other/circuitpython/mpy-cross/build/mpy-cross {} \;
-find "${CIRCUITPY_MOUNT}/lib/cpstatemachine/" "${CIRCUITPY_MOUNT}/lib/peckus/" -name "*.mpy" -type f | while read MPY ; do PY="${MPY:0:-4}.py" ; if [ -f "${PY}" ]; then rm "${PY}" ; fi ; done
+type mpy-cross > /dev/null 2> /dev/null
+if [ $? -eq 0 ]; then
+	echo "PECKUS-INSTALL: cross-compiling MPY files on '${CIRCUITPY_MOUNT}/lib/{cpstatemachine,peckus}' (might take about 15 seconds)"
+	find "${CIRCUITPY_MOUNT}/lib/cpstatemachine/" "${CIRCUITPY_MOUNT}/lib/peckus/" -name "*.py" -type f -exec mpy-cross {} \;
+	find "${CIRCUITPY_MOUNT}/lib/cpstatemachine/" "${CIRCUITPY_MOUNT}/lib/peckus/" -name "*.mpy" -type f | while read MPY ; do PY="${MPY:0:-4}.py" ; if [ -f "${PY}" ]; then rm "${PY}" ; fi ; done
+else
+	echo "WARNING: 'mpy-cross' not in PATH, skipping cross-compilation...expect much slower runtime performance"
+fi
 
 echo "PECKUS-INSTALL: unmounting '${CIRCUITPY_DEVICE}'"
 sudo umount -q "${CIRCUITPY_MOUNT}"
