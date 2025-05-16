@@ -10,7 +10,7 @@ class AbstractAction:
         if action_class not in self.app_data:
             self.app_data[action_class] = {}
         if callable(self.action_method) is False:
-            raise NotImplementedError(f"Action<{self.action_class}>.{self.action_method}() is not implemented")
+            raise NotImplementedError(f"Action<{action_class}>.{action_method}() is not implemented")
 
 
     def __call__(self) -> None:

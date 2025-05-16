@@ -1,0 +1,335 @@
+{
+	"settings":
+	{
+		"APP_CONFIG_FILENAME":                   {"default": "peckus.json",   "validator": "string"},
+		"APP_PAYLOAD_FILENAME":                  {"default": "secret.txt",    "validator": "string"},
+
+		"UNLOCK_PRESENCE_BTN":                   {"default": "TRUE",          "validator": "boolean"},
+		"UNLOCK_PRESENCE_BTN_VALIDITY_SECS":     {"default": "60",            "validator": "integer"},
+		"UNLOCK_PRESENCE_BLE":                   {"default": "FALSE",         "validator": "boolean"},
+		"UNLOCK_PRESENCE_BLE_VALIDITY_SECS":     {"default": "60",            "validator": "integer"},
+
+		"RELOCK_TIMEOUT":                        {"default": "TRUE",          "validator": "boolean"},
+		"RELOCK_TIMEOUT_SECS":                   {"default": "300",           "validator": "integer"},
+		"RELOCK_PRESENCE_BLE":                   {"default": "FALSE",         "validator": "boolean"},
+		"RELOCK_PRESENCE_BLE_GRACE_SECS":        {"default": "0",             "validator": "integer"},
+
+		"DEVICE_USB_VENDOR":                     {"default": "CIRCUITPYTHON", "validator": "string"},
+		"DEVICE_USB_PRODUCT":                    {"default": "PECKUS",        "validator": "string"},
+		"DEVICE_USB_VID":                        {"default": "239A",          "validator": "hexadecimel"},
+		"DEVICE_USB_PID":                        {"default": "2025",          "validator": "hexadecimel"},
+		"DEVICE_BLE_NAME":                       {"default": "PECKUS",        "validator": "string"},
+
+		"CONSOLE_USB":                           {"default": "FALSE",         "validator": "boolean"},
+
+		"FILESYSTEM_KEEP_BOOT_OUT_TXT":          {"default": "TRUE",          "validator": "boolean"},
+		"FILESYSTEM_KEEP_CONFIG_JSON":           {"default": "TRUE",          "validator": "boolean"},
+		"FILESYSTEM_KEEP_SETTINGS_TOML":         {"default": "TRUE",          "validator": "boolean"},
+
+		"DEBUG":                                 {"default": "FALSE",         "validator": "boolean"},
+		"DEBUG_BOOTPY_FACTORYRESET_ON_POWERON":  {"default": "FALSE",         "validator": "boolean"},
+		"DEBUG_CODEPY_WAIT4CONSOLE":             {"default": "FALSE",         "validator": "boolean"},
+		"DEBUG_CODEPY_WAIT4SECONDS":             {"default": "0",             "validator": "integer"}
+	},
+	"application":
+	{
+		"boot.py":
+		{
+			"workflows":
+			[
+				{
+					"name": "BOOT",
+					"states":
+					[
+						{
+							"name":        "BOOT",
+							"actions":     ["peckus:requirements=['UNLOCK_BTN={UNLOCK_PRESENCE_BTN}', 'UNLOCK_BLE={UNLOCK_PRESENCE_BLE}']",
+							                "peckus:requirement-validity-button-reset=UNLOCK_BTN:{UNLOCK_PRESENCE_BTN_VALIDITY_SECS}"],
+							"transitions": [{"state": "BOOT:CONFIGURATION", "conditions": ["peckus:runtime=INSTALLED"]},
+							                {"state": "BOOT:DEPLOYMENT",    "conditions": ["peckus:runtime=CONFIGURED"]},
+							                {"state": "BOOT:UNLOCKED",      "conditions": ["peckus:runtime=DEPLOYED",
+							                                                               "boolean:true={UNLOCK_PRESENCE_BTN}", "peckus:requirement-valid=UNLOCK_BTN",
+							                                                               "boolean:true={UNLOCK_PRESENCE_BLE}", "peckus:requirement-valid=UNLOCK_BLE"]},
+							                {"state": "BOOT:UNLOCKED",      "conditions": ["peckus:runtime=DEPLOYED",
+							                                                               "boolean:false={UNLOCK_PRESENCE_BTN}",
+							                                                               "boolean:true={UNLOCK_PRESENCE_BLE}", "peckus:requirement-valid=UNLOCK_BLE"]},
+							                {"state": "BOOT:UNLOCKED",      "conditions": ["peckus:runtime=DEPLOYED",
+							                                                               "boolean:true={UNLOCK_PRESENCE_BTN}", "peckus:requirement-valid=UNLOCK_BTN",
+							                                                               "boolean:false={UNLOCK_PRESENCE_BLE}"]},
+							                {"state": "BOOT:LOCKED",        "conditions": ["peckus:runtime=DEPLOYED",
+							                                                               "peckus:requirement-invalid=UNLOCK_BTN"]},
+							                {"state": "BOOT:LOCKED",        "conditions": ["peckus:runtime=DEPLOYED",
+							                                                               "peckus:requirement-invalid=UNLOCK_BLE"]}],
+							"jobs":        []
+						},
+						{
+							"name":        "BOOT:CONFIGURATION",
+							"actions":     ["peckus:configure={APP_CONFIG_FILENAME}"],
+							"transitions": [{"state": "BOOT:DEPLOYMENT", "conditions": []}],
+							"jobs":        []
+						},
+						{
+							"name":        "BOOT:DEPLOYMENT",
+							"actions":     ["circuitpython:usb-storage=TRUE", "filesystem:remount=READONLY", "peckus:workflow=DEPLOYMENT"],
+							"transitions": [{"state": "BOOT:EXECUTE", "conditions": []}],
+							"jobs":        []
+						},
+						{
+							"name":        "BOOT:UNLOCKED",
+							"actions":     ["circuitpython:usb-storage=TRUE", "filesystem:remount=READWRITE", "peckus:workflow=UNLOCKED"],
+							"transitions": [{"state": "BOOT:EXECUTE", "conditions": []}],
+							"jobs":        []
+						},
+						{
+							"name":        "BOOT:LOCKED",
+							"actions":     ["circuitpython:usb-storage=FALSE", "filesystem:remount=READONLY", "peckus:workflow=LOCKED"],
+							"transitions": [{"state": "BOOT:EXECUTE", "conditions": []}],
+							"jobs":        []
+						},
+						{
+							"name":        "BOOT:EXECUTE",
+							"actions":     ["circuitpython:usb-serial={CONSOLE_USB}", "circuitpython:ble-network={UNLOCK_PRESENCE_BLE}", "workflow:exit=TRUE"],
+							"transitions": [],
+							"jobs":        []
+						}
+					]
+				}
+			]
+		},
+		"code.py":
+		{
+			"workflows":
+			[
+				{
+					"name": "DEPLOYMENT",
+					"states":
+					[
+						{
+							"name":        "DEPLOYMENT",
+							"actions":     [],
+							"transitions": [{"state":"DEPLOYMENT:BLE-PAIRING",  "conditions": ["boolean:true={UNLOCK_PRESENCE_BLE}"]},
+							                {"state":"DEPLOYMENT:BLE-PAIRING",  "conditions": ["boolean:true={RELOCK_PRESENCE_BLE}"]},
+							                {"state":"DEPLOYMENT:PAYLOAD-WAIT", "conditions": ["boolean:false={UNLOCK_PRESENCE_BLE}", "boolean:false={RELOCK_PRESENCE_BLE}"]}],
+							"jobs":        []
+						},
+						{
+							"name":        "DEPLOYMENT:BLE-PAIRING",
+							"actions":     ["ble:name={DEVICE_BLE_NAME}", "ble:advertise=TRUE"],
+							"transitions": [{"state":"DEPLOYMENT:BLE-CONNECTING", "conditions": ["ble:paired=TRUE"]}],
+							"jobs":        [{"job": "led", "name": "blue:blink",  "data": {"states": [{"BLUE": "ON",  "millis": 500}, {"BLUE": "OFF", "millis": 500}]}}]
+						},
+						{
+							"name":        "DEPLOYMENT:BLE-CONNECTING",
+							"actions":     [],
+							"transitions": [{"state": "DEPLOYMENT:BLE-READY", "conditions": ["ble:connected=TRUE"]}],
+							"jobs":        [{"job": "led", "name": "blue:blink",  "data": {"states": [{"BLUE": "ON",  "millis": 250}, {"BLUE": "OFF", "millis": 250}]}}]
+						},
+						{
+							"name":        "DEPLOYMENT:BLE-READY",
+							"actions":     ["ble:advertise=FALSE"],
+							"transitions": [{"state": "DEPLOYMENT:PAYLOAD-WAIT", "conditions": []}],
+							"jobs":        []
+						},
+						{
+							"name":        "DEPLOYMENT:PAYLOAD-WAIT",
+							"actions":     [],
+							"transitions": [{"state": "DEPLOYMENT:PAYLOAD-READY", "conditions": ["filesystem:exists={APP_PAYLOAD_FILENAME}"]}],
+							"jobs":        [{"job": "led", "name": "green:blink", "data": {"states": [{"GREEN": "ON",  "millis": 500}, {"GREEN": "OFF", "millis": 500}]}}]
+						},
+						{
+							"name":        "DEPLOYMENT:PAYLOAD-READY",
+							"actions":     ["peckus:runtime=DEPLOYED", "peckus:restart=BOOT"],
+							"transitions": [],
+							"jobs":        []
+						}
+					]
+				},
+				{
+					"name":"LOCKED",
+					"sub-workflows": ["UNLOCK:BTN", "UNLOCK:BLE"],
+					"states":
+					[
+						{
+							"name":        "LOCKED",
+							"actions":     ["peckus:requirements=None"],
+							"transitions": [{"state": "LOCKED:UNLOCK", "conditions": ["boolean:true={UNLOCK_PRESENCE_BTN}", "peckus:requirement-valid=UNLOCK_BTN",
+							                                                          "boolean:true={UNLOCK_PRESENCE_BLE}", "peckus:requirement-valid=UNLOCK_BLE"]},
+							                {"state": "LOCKED:UNLOCK", "conditions": ["boolean:false={UNLOCK_PRESENCE_BTN}",
+							                                                          "boolean:true={UNLOCK_PRESENCE_BLE}", "peckus:requirement-valid=UNLOCK_BLE"]},
+							                {"state": "LOCKED:UNLOCK", "conditions": ["boolean:true={UNLOCK_PRESENCE_BTN}", "peckus:requirement-valid=UNLOCK_BTN",
+							                                                          "boolean:false={UNLOCK_PRESENCE_BLE}"]}],
+							"jobs":        [{"job": "led", "scope": "workflow", "name": "red:on", "data": {"states": [{"RED": "ON"}]}}]
+						},
+						{
+							"name":        "LOCKED:UNLOCK",
+							"actions":     ["peckus:restart=BOOT"],
+							"transitions": [],
+							"jobs":        []
+						}
+					]
+				},
+				{
+					"name": "UNLOCK:BTN",
+					"states":
+					[
+						{
+							"name":        "UNLOCK:BTN",
+							"actions":     ["peckus:requirements=['UNLOCK_BTN={UNLOCK_PRESENCE_BTN}']"],
+							"transitions": [{"state": "UNLOCK:BTN:CHECK", "conditions": ["boolean:true={UNLOCK_PRESENCE_BTN}"]}],
+							"jobs":        []
+						},
+						{
+							"name":        "UNLOCK:BTN:CHECK",
+							"actions":     [],
+							"transitions": [{"state": "UNLOCK:BTN:CHECK-BTN", "conditions": ["peckus:requirement-invalid=UNLOCK_BTN:15"]}],
+							"jobs":        []
+						},
+						{
+							"name":        "UNLOCK:BTN:CHECK-BTN",
+							"actions":     [],
+							"transitions": [{"state": "UNLOCK:BTN:PRESENCE-BTN", "conditions": ["button:reset=TRUE"]},
+							                {"state": "UNLOCK:BTN:PRESENCE-BTN", "conditions": ["button:user=TRUE"]},
+							                {"state": "UNLOCK:BTN:CHECK",        "conditions": ["button:reset=FALSE", "button:user=FALSE"]}],
+							"jobs":        []
+						},
+						{
+							"name":        "UNLOCK:BTN:PRESENCE-BTN",
+							"actions":     ["peckus:requirement-validity=UNLOCK_BTN:{UNLOCK_PRESENCE_BTN_VALIDITY_SECS}"],
+							"transitions": [{"state": "UNLOCK:BTN:CHECK", "conditions": []}],
+							"jobs":        []
+						}
+					]
+				},
+				{
+					"name": "UNLOCK:BLE",
+					"states":
+					[
+						{
+							"name":        "UNLOCK:BLE",
+							"actions":     ["peckus:requirements=['UNLOCK_BLE={UNLOCK_PRESENCE_BLE}']"],
+							"transitions": [{"state": "UNLOCK:BLE:CHECK", "conditions": ["boolean:true={UNLOCK_PRESENCE_BLE}"]}],
+							"jobs":        []
+						},
+						{
+							"name":        "UNLOCK:BLE:CHECK",
+							"actions":     [],
+							"transitions": [{"state": "UNLOCK:BLE:CHECK-BLE", "conditions": ["peckus:requirement-invalid=UNLOCK_BLE:15"]}],
+							"jobs":        []
+						},
+						{
+							"name":        "UNLOCK:BLE:CHECK-BLE",
+							"actions":     [],
+							"transitions": [{"state": "UNLOCK:BLE:PRESENCE-BLE", "conditions": ["ble:connected=TRUE"]},
+							                {"state": "UNLOCK:BLE:CHECK",        "conditions": ["ble:connected=FALSE"]}],
+							"jobs":        []
+						},
+						{
+							"name":        "UNLOCK:BLE:PRESENCE-BLE",
+							"actions":     ["peckus:requirement-validity=UNLOCK_BLE:{UNLOCK_PRESENCE_BLE_VALIDITY_SECS}"],
+							"transitions": [{"state": "UNLOCK:BLE:CHECK", "conditions": []}],
+							"jobs":        []
+						}
+					]
+				},
+				{
+					"name": "UNLOCKED",
+					"sub-workflows": ["RELOCK:TIME", "RELOCK:BLE"],
+					"states":
+					[
+						{
+							"name":        "UNLOCKED",
+							"actions":     ["peckus:requirements=None",
+							                "peckus:requirements=['RELOCK_TIMEOUT={RELOCK_TIMEOUT}','RELOCK_BLE={RELOCK_PRESENCE_BLE}']",
+							                "peckus:requirement-validity=RELOCK_TIMEOUT:{RELOCK_TIMEOUT_SECS}",
+							                "peckus:requirement-validity=RELOCK_BLE:{RELOCK_PRESENCE_BLE_GRACE_SECS}"],
+							"transitions": [{"state": "UNLOCKED:RELOCK", "conditions": ["boolean:true={RELOCK_PRESENCE_BLE}", 
+							                                                            "peckus:requirement-invalid=RELOCK_BLE"]},
+							                {"state": "UNLOCKED:RELOCK", "conditions": ["boolean:true={RELOCK_TIMEOUT}", 
+							                                                            "peckus:requirement-invalid=RELOCK_TIMEOUT"]}],
+							"jobs":        [{"job": "led", "name": "green:on", "data": {"states": [{"GREEN": "ON"}]}}]
+						},
+						{
+							"name":        "UNLOCKED:RELOCK",
+							"actions":     ["peckus:restart=BOOT"],
+							"transitions": [],
+							"jobs":        []
+						}
+					]
+				},
+				{
+					"name": "RELOCK:TIME",
+					"states":
+					[
+						{
+							"name":        "RELOCK:TIME",
+							"actions":     [],
+							"transitions": [{"state": "RELOCK:TIME:START", "conditions": ["boolean:true={RELOCK_TIMEOUT}"]}],
+							"jobs":        []
+						},
+						{
+							"name":        "RELOCK:TIME:START",
+							"actions":     ["timeout:seconds=RELOCK-TIMEOUT:{RELOCK_TIMEOUT_SECS}"],
+							"transitions": [{"state": "RELOCK:TIME:WAIT", "conditions": []}],
+							"jobs":        []
+						},
+						{
+							"name":        "RELOCK:TIME:WAIT",
+							"actions":     [],
+							"transitions": [{"state": "RELOCK:TIME:EXECUTE", "conditions": ["timeout:expired=RELOCK-TIMEOUT"]},
+							                {"state": "RELOCK:TIME:EXECUTE", "conditions": ["timeout:unknown=RELOCK-TIMEOUT"]}],
+							"jobs":        []
+						},
+						{
+							"name":        "RELOCK:TIME:EXECUTE",
+							"actions":     ["peckus:requirement-validity=RELOCK_TIMEOUT:-1"],
+							"transitions": [],
+							"jobs":        []
+						}
+					]
+				},
+				{
+					"name": "RELOCK:BLE",
+					"states":
+					[
+						{
+							"name":        "RELOCK:BLE",
+							"actions":     [],
+							"transitions": [{"state": "RELOCK:BLE:CONNECT", "conditions": ["boolean:true={RELOCK_PRESENCE_BLE}"]}],
+							"jobs":        []
+						},
+						{
+							"name":        "RELOCK:BLE:CONNECT",
+							"actions":     ["timeout:seconds=RELOCK-BLE-UNCONNECTED:{RELOCK_PRESENCE_BLE_GRACE_SECS}"],
+							"transitions": [{"state": "RELOCK:BLE:CONNECTED", "conditions": ["ble:connected=TRUE"]},
+							                {"state": "RELOCK:BLE:EXECUTE",   "conditions": ["timeout:unknown=RELOCK-BLE-UNCONNECTED"]},
+							                {"state": "RELOCK:BLE:EXECUTE",   "conditions": ["timeout:expired=RELOCK-BLE-UNCONNECTED"]}],
+							"jobs":        []
+						},
+						{
+							"name":        "RELOCK:BLE:CONNECTED",
+							"actions":     ["timeout:remove=RELOCK-BLE-UNCONNECTED", "timeout:remove=RELOCK-BLE-DISCONNECTED",
+							                "peckus:requirement-validity=RELOCK_BLE:0"],
+							"transitions": [{"state": "RELOCK:BLE:DISCONNECTED", "conditions": ["ble:connected=FALSE"]}],
+							"jobs":        []
+						},
+						{
+							"name":        "RELOCK:BLE:DISCONNECTED",
+							"actions":     ["timeout:seconds=RELOCK-BLE-DISCONNECTED:{RELOCK_PRESENCE_BLE_GRACE_SECS}"],
+							"transitions": [{"state": "RELOCK:BLE:CONNECTED", "conditions": ["ble:connected=TRUE"]},
+							                {"state": "RELOCK:BLE:EXECUTE",   "conditions": ["timeout:unknown=RELOCK-BLE-DISCONNECTED"]},
+							                {"state": "RELOCK:BLE:EXECUTE",   "conditions": ["timeout:expired=RELOCK-BLE-DISCONNECTED"]}],
+							"jobs":        []
+						},
+						{
+							"name":        "RELOCK:BLE:EXECUTE",
+							"actions":     ["peckus:requirement-validity=RELOCK_BLE:-1"],
+							"transitions": [],
+							"jobs":        []
+						}
+					]
+				}
+			]
+		}
+	}
+}
+

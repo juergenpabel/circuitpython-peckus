@@ -19,8 +19,8 @@ class Job(AbstractJob):
     LED_NAMES  = {LED.RED: board_LED_RED, LED.GREEN: board_LED_GREEN, LED.BLUE: board_LED_BLUE}
     LED_STATES = {'OFF': True, 'ON': False}
 
-    def __init__(self, name: str, configuration: dict):
-        super().__init__('led', name)
+    def __init__(self, name: str, configuration: dict, scope: str):
+        super().__init__('led', name, scope)
         self.states = []
         if 'states' not in configuration or len(configuration['states']) == 0:
             raise ValueError(f"missing 'states' definition in job '{name}'")
@@ -70,4 +70,8 @@ class Job(AbstractJob):
             if led is not None:
                 led.value = Job.LED_STATES['OFF']
                 led.deinit()
+
+
+    def concurrency(self) -> bool:
+        return False
 

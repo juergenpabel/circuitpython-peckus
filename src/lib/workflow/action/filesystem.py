@@ -16,7 +16,7 @@ class Action(AbstractAction):
     RW_OPTIONS = {'READONLY': True, 'READWRITE': False}
 
     def __init__(self, filesystem_method: str, filesystem_data: str, app_data: dict):
-        super().__init__("filesystem", filesystem_method, app_data)
+        super().__init__('filesystem', filesystem_method, app_data)
         self.filesystem_data = filesystem_data
 
 
@@ -59,7 +59,7 @@ class Action(AbstractAction):
     def file_shred(self) -> None:
         if self.filesystem_data is not None:
             if storage_getmount('/').readonly is True:
-                raise RuntimeError(f"Action<filesystem>.shred('{self.storge_data}') not valid read-only mounted filesystem")
+                raise RuntimeError(f"Action<filesystem>.shred('{self.filesystem_data}') not valid read-only mounted filesystem")
             try:
                 stat = os_stat(self.filesystem_data)
                 if stat is not None:

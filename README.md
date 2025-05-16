@@ -34,7 +34,7 @@ Let's assume the provided default configuration: unlocking the device is done by
 
 First off: CircuitPython (firmware) installation - let's say that has already been completed, okay? Next up (in the first phase): installation of the circuitpython application (PECKUS), just run `install.sh` from the `tools` directory in this repository. Unplug the device thereafter. Done.
 
-Now for the deployment/provisioning phase: Plug it back in, it starts blinking its blue LED after about 10-15 seconds - indicating that it is ready for pairing/bonding via Bluetooth LE. Once the pairing is completed, the stick continues with the payload provisioning step (green LED blinks), waiting for you to save your precious data in the file `secret.txt` on the device (or whatever filename was set via `PECKUS_PAYLOAD_FILENAME` in `settings.toml` during phase 1). Once the payload file is saved to the device, its contents are copied to NVM, the file is deleted and the device resets and (from than on always) enters phase 3 (usage).
+Now for the deployment/provisioning phase: Plug it back in, it starts blinking its blue LED after about 10-15 seconds - indicating that it is ready for pairing/bonding via Bluetooth LE. Once the pairing is completed, the stick continues with the payload provisioning step (green LED blinks), waiting for you to save your precious data in the file `secret.txt` on the device (or whatever filename was set via `PECKUS_APP_PAYLOAD_FILENAME` in `settings.toml` during phase 1). Once the payload file is saved to the device, its contents are copied to NVM, the file is deleted and the device resets and (from than on always) enters phase 3 (usage).
 
 Now for the usage phase: Wait for the red LED to turn on, push the (reset-)button on the device, wait for the red-blue blinking LEDs to come on, make sure your Bluetooth device makes the connection (should happen automatically for Android & Apple devices) and wait for the green LED. Now your precious `secret.txt` should be (read-only) accessible via USB.
 
@@ -44,7 +44,7 @@ Now for the usage phase: Wait for the red LED to turn on, push the (reset-)butto
 # Implementation
 This circuitpython application runs two-staged: the first part runs in `boot.py` and configures the storage as to if/how it is exposed via USB as a mass storage device (because `boot.py` is where this needs to be configured: whether the storage should be exposed via USB in read-write, read-only mode or not at all to the host computer). The part of the application that runs as part of `code.py` essentially handles whatever state the application is currently in (like initialization, deployment and regular usage).
 
-With the exception of the initial configuration phase, all application states are implemented as workflows that run on a (finite-)state-machine; the workflow definition is stored in a JSON file, which is referenced by the circuitpython configuration key `PECKUS_CONFIG_FILENAME` (in `settings.toml`). Also note that the application configuration (essentially the workflow definitions plus some configuration values) is copied from the (user-accessible) filesystem to non-volatile-memory (NVM) of the microcontroller as the very first deployment/installation phase. The relevant files (`settings.toml` and `peckus.json` or whatever filename was chosen) are thereafter no longer used - this is both a security measure (to avoid re-configuration after deployment is completed) and a robustness feature (the NVM is not exposed to the USB host computer and thus should be "safe" with respect to user actions).
+With the exception of the initial configuration phase, all application states are implemented as workflows that run on a (finite-)state-machine; the workflow definition is stored in a JSON file, which is referenced by the circuitpython configuration key `PECKUS_APP_CONFIG_FILENAME` (in `settings.toml`). Also note that the application configuration (essentially the workflow definitions plus some configuration values) is copied from the (user-accessible) filesystem to non-volatile-memory (NVM) of the microcontroller as the very first deployment/installation phase. The relevant files (`settings.toml` and `peckus.json` or whatever filename was chosen) are thereafter no longer used - this is both a security measure (to avoid re-configuration after deployment is completed) and a robustness feature (the NVM is not exposed to the USB host computer and thus should be "safe" with respect to user actions).
 
 
 # Hardware
@@ -66,7 +66,7 @@ Another hardware dependency are the LED indicators, the current implementation u
 # Installation and deployment
 Files from this repository can be copied manually onto a CIRCUITPY drive (an already active circuitpython device), just copy the CIRCUITPY directory in this repository (copy with resolving symlinks though) and unmount the device, than un- and re-plug it. As an alternative, there is an installations script (`tools/install.sh`) - it will also copy those files but will also first create a new FAT12 filesystem on the device for a clean and known device baseline.
 
-Now the deployment begins: PECKUS loads the workflow configuration (as per `PECKUS_CONFIG_FILENAME` in `settings.toml`), does parameter evaluation (see `parameter` section in the workflow file) and copies it to the NVM. If this is successful, it restarts and starts the provisioning steps (BLE pairing and putting the payload file on the device). Once that's completed, it restarts and enters the usage phase/workflows.
+Now the deployment begins: PECKUS loads the workflow configuration (as per `PECKUS_APP_CONFIG_FILENAME` in `settings.toml`), does parameter evaluation (see `parameter` section in the workflow file) and copies it to the NVM. If this is successful, it restarts and starts the provisioning steps (BLE pairing and putting the payload file on the device). Once that's completed, it restarts and enters the usage phase/workflows.
 
 **Important**: The default configuration (`settings.toml`) has DEBUG settings activated, the most relevant implications:
 - `PECKUS_DEBUG_BOOTPY_FACTORYRESET_ON_POWERON` is set to `TRUE`, therefore any unplugging of the device will reset the PECKUS configuration upon next power-on of the device (it will essentially erase all NVM data and thus be in the uninitialized state again); this is on purpose for evluation/testing purposes - for "production" usage, you'd would most likely change some parameters or even workflow logic anyhow.
@@ -77,23 +77,24 @@ Now the deployment begins: PECKUS loads the workflow configuration (as per `PECK
 The following table lists all implemented settings (as in entries in `settings.toml`), their default values and some explanations.
 | Setting | Default value | Details |
 | ------- | ------------- | ------- |
-| CONFIG_FILENAME | peckus.json | TODO |
-| PAYLOAD_FILENAME | secret.txt | TODO |
-| UNLOCK_PRESENCE_BTN | TRUE | TODO |
-| UNLOCK_PRESENCE_BLE | FALSE | TODO |
-| UNLOCK_PRESENCE_BLE_GRACE_SECS  | 0 | TODO |
-| RELOCK_SECS | 300 | TODO |
-| DEVICE_USB_VENDOR | CIRCUITPYTHON | TODO |
-| DEVICE_USB_PRODUCT | PECKUS | TODO |
-| DEVICE_USB_VID | 239A | TODO |
-| DEVICE_USB_PID | 2025 | TODO |
-| DEVICE_BLE_NAME | PECKUS | TODO |
-| CONSOLE_USB | FALSE | TODO |
-| DEBUG | FALSE | TODO |
-| DEBUG_BOOTPY_FACTORYRESET_ON_POWERON | FALSE | TODO |
-| DEBUG_CODEPY_WAIT4CONSOLE | FALSE | TODO |
-| DEBUG_CODEPY_WAIT4SECONDS | 0 | TODO |
-
+| PECKUS_APP_CONFIG_FILENAME | peckus.json | TODO |
+| PECKUS_APP_PAYLOAD_FILENAME | secret.txt | TODO |
+| PECKUS_UNLOCK_PRESENCE_BTN | TRUE | TODO |
+| PECKUS_UNLOCK_PRESENCE_BLE | FALSE | TODO |
+| PECKUS_UNLOCK_PRESENCE_BLE_CONNECT_SECS  | 60 | TODO |
+| PECKUS_RELOCK_DURATION_SECS | 300 | TODO |
+| PECKUS_RELOCK_PRESENCE_BLE_RECONNECT_SECS  | 15 | TODO |
+| PECKUS_DEVICE_USB_VENDOR | CIRCUITPYTHON | TODO |
+| PECKUS_DEVICE_USB_PRODUCT | PECKUS | TODO |
+| PECKUS_DEVICE_USB_VID | 239A | TODO |
+| PECKUS_DEVICE_USB_PID | 2025 | TODO |
+| PECKUS_DEVICE_BLE_NAME | PECKUS | TODO |
+| PECKUS_CONSOLE_USB | FALSE | TODO |
+| PECKUS_DEBUG | FALSE | TODO |
+| PECKUS_DEBUG_BOOTPY_FACTORYRESET_ON_POWERON | FALSE | TODO |
+| PECKUS_DEBUG_CODEPY_WAIT4CONSOLE | FALSE | TODO |
+| PECKUS_DEBUG_CODEPY_WAIT4SECONDS | 0 | TODO |
+Please note that all settings should be set as TOML strings, validation of and conversion to target types (boolean, integer, hexadecimal, string) are implemented in the application.
 
 # Reference: LED codes (in default PECKUS configuration)
 The following table lists the LED codes implemented in the default PECKUS workflows (and code.py for two error cases). `ON` and `OFF` should be obvious, `FAST` means 2 blinking cycles per seconds and `SLOW` means 1 blinking cycle per second. Please not that two slow blinking cycles can be combined, then it is 1 (full) blinking cycle every 2 seconds.

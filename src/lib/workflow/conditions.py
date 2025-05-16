@@ -1,14 +1,14 @@
 from re import match as re_match
-
+from gc import collect as gc_collect
 
 class Conditions:
 
-    def __init__(self, conditions, appdata: dict):
+    def __init__(self, conditions: list, appdata: dict):
         if 'condition_classes' not in appdata:
             appdata['condition_classes'] =  {}
         self.conditions = []
         for condition in conditions:
-            matches = re_match(r'^(\w+):(\w+)=(.*)$', condition)
+            matches = re_match(r'^([\w-]+):([\w-]+)=(.*)$', condition)
             if matches is None:
                 raise NameError(f"Invalid condition syntax: {condition}")
             matches = matches.groups()
@@ -19,10 +19,11 @@ class Conditions:
                 condition_params = matches[2]
                 exec(f'from peckus.workflow.condition.{condition_module} import Condition as {condition_class}')
                 appdata['condition_classes'][condition_class] = eval(condition_class)
-                self.conditions.append(appdata['condition_classes'][condition_class](condition_method, condition_params, appdata))
+                self.conditions.append(appdata['condition_classes'][condition_class](condition_method.replace('-', '_'), condition_params, appdata))
 
 
     def __call__(self):
+        gc_collect()
         for condition in self.conditions:
             if condition() is False:
                 return False

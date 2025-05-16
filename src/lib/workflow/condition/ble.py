@@ -25,7 +25,10 @@ class Condition(AbstractCondition):
 
 
     def connected(self) -> bool:
-        return str(self.app_data['ble']['radio'].connected).upper() == self.ble_data.upper()
+        result = False
+        for connection in self.app_data['ble']['radio'].connections:
+            result = True if connection.connected is True else result
+        return str(result).upper() == self.ble_data.upper()
 
 
     def scan_any_of(self) -> bool:

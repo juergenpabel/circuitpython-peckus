@@ -1,0 +1,45 @@
+## DEBUG configuration: 
+## - button-push and BLE connection required for unlocking
+## - 90sec timout or after 15sec with no BLE connection for relocking
+## - USB CDC serial (console/REPL) is enabled
+## DEBUG behaviour:
+## - unplugging the device will lead to a factory reset upon power-on (takes about 3-5secs before MCU reset)
+## - boot.py runs as always
+## - code.py will wait for an USB console/REPL connection before running any application logic
+
+# application configuration
+PECKUS_APP_CONFIG_FILENAME="peckus.json"
+PECKUS_APP_PAYLOAD_FILENAME="secret.txt"
+
+
+# workflow-specific parameters: ./peckus.json (-> conf.d/peckus.json.d/default.json)
+PECKUS_UNLOCK_PRESENCE_BTN="TRUE"
+PECKUS_UNLOCK_PRESENCE_BTN_VALIDITY_SECS="60"
+PECKUS_UNLOCK_PRESENCE_BLE="TRUE"
+PECKUS_UNLOCK_PRESENCE_BLE_VALIDITY_SECS="60"
+
+PECKUS_RELOCK_TIMEOUT="TRUE"
+PECKUS_RELOCK_TIMEOUT_SECS="90"
+PECKUS_RELOCK_PRESENCE_BLE="TRUE"
+PECKUS_RELOCK_PRESENCE_BLE_GRACE_SECS="15"
+
+# device identification
+PECKUS_DEVICE_USB_VENDOR="CIRCUITPYTHON"
+PECKUS_DEVICE_USB_PRODUCT="PECKUS"
+PECKUS_DEVICE_USB_VID="239a"
+PECKUS_DEVICE_USB_PID="2025"
+PECKUS_DEVICE_BLE_NAME="PECKUS"
+
+# security related configuration variables
+PECKUS_CONSOLE_USB="TRUE"
+
+PECKUS_FILESYSTEM_KEEP_BOOT_OUT_TXT="TRUE"
+PECKUS_FILESYSTEM_KEEP_CONFIG_JSON="TRUE"
+PECKUS_FILESYSTEM_KEEP_SETTINGS_TOML="TRUE"
+
+# debugging (or for evaluation purposes) configuration options
+PECKUS_DEBUG="TRUE"
+PECKUS_DEBUG_BOOTPY_FACTORYRESET_ON_POWERON="TRUE"
+PECKUS_DEBUG_CODEPY_WAIT4CONSOLE="TRUE"
+PECKUS_DEBUG_CODEPY_WAIT4SECONDS="0"
+

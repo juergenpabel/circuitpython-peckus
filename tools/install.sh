@@ -1,9 +1,11 @@
-#!/bin/sh
+#!/bin/bash
+
+PECKUS_GIT_DIR=`git rev-parse --show-toplevel`
 
 CIRCUITPY_DEVICE=${1:-/dev/sda1}
 CIRCUITPY_MOUNT=${2:-/media/${USERNAME}/PECKUS}
+CIRCUITPY_DIR=${CIRCUITPY_DIR:-${PECKUS_GIT_DIR}/CIRCUITPY}
 
-GIT_REPODIR=`git rev-parse --show-toplevel`
 
 USER_UID=`id -u ${USERNAME}`
 USER_GID=`id -g ${USERNAME}`
@@ -35,12 +37,16 @@ if [ $? -ne 0 ]; then
 fi
 
 
-echo "PECKUS-INSTALL: copying application files to '${CIRCUITPY_MOUNT}' (should not take longer than 30 seconds)"
-( cd "${GIT_REPODIR}/CIRCUITPY/" ; cp -rL . "${CIRCUITPY_MOUNT}/" )
+echo "PECKUS-INSTALL: copying application files to '${CIRCUITPY_MOUNT}' (might take about 30 seconds)"
+( cd "${CIRCUITPY_DIR}" ; cp -rL . "${CIRCUITPY_MOUNT}/" )
 if [ $? -ne 0 ]; then
 	echo "ERROR cp"
 	exit 1
 fi
+
+echo "PECKUS-INSTALL: cross-compiling MPY files on '${CIRCUITPY_MOUNT}/lib/{cpstatemachine,peckus}' (might take about 15 seconds)"
+find "${CIRCUITPY_MOUNT}/lib/cpstatemachine/" "${CIRCUITPY_MOUNT}/lib/peckus/" -name "*.py" -type f -exec ../../other/circuitpython/mpy-cross/build/mpy-cross {} \;
+find "${CIRCUITPY_MOUNT}/lib/cpstatemachine/" "${CIRCUITPY_MOUNT}/lib/peckus/" -name "*.mpy" -type f | while read MPY ; do PY="${MPY:0:-4}.py" ; if [ -f "${PY}" ]; then rm "${PY}" ; fi ; done
 
 echo "PECKUS-INSTALL: unmounting '${CIRCUITPY_DEVICE}'"
 sudo umount -q "${CIRCUITPY_MOUNT}"

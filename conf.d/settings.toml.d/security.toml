@@ -1,0 +1,47 @@
+## SECURITY configuration: 
+## - button-push and BLE connection for unlocking
+## - 30sec timout or immediate relocking upon BLE disconnection
+## - USB CDC serial (console/REPL) is disbled
+## - configuration files+logs are deleted on startup
+##
+## WARNING: Such a configuration is only effective, if a CIRCUITPYTHON build with
+##          disabled user-induced safe-mode startups (double-push reset-button on
+##          most boards) - this would otherwise allow bypassing of any measure
+##          implemented in PECKUS.
+
+# application configuration
+PECKUS_APP_CONFIG_FILENAME="peckus.json"
+PECKUS_APP_PAYLOAD_FILENAME="secret.txt"
+
+
+# workflow-specific parameters: ./peckus.json (-> conf.d/peckus.json.d/default.json)
+PECKUS_UNLOCK_PRESENCE_BTN="TRUE"
+PECKUS_UNLOCK_PRESENCE_BTN_VALIDITY_SECS="30"
+PECKUS_UNLOCK_PRESENCE_BLE="TRUE"
+PECKUS_UNLOCK_PRESENCE_BLE_VALIDITY_SECS="30"
+
+PECKUS_RELOCK_TIMEOUT="TRUE"
+PECKUS_RELOCK_TIMEOUT_SECS="30"
+PECKUS_RELOCK_PRESENCE_BLE="TRUE"
+PECKUS_RELOCK_PRESENCE_BLE_GRACE_SECS="0"
+
+# device identification
+PECKUS_DEVICE_USB_VENDOR="CIRCUITPYTHON"
+PECKUS_DEVICE_USB_PRODUCT="PECKUS"
+PECKUS_DEVICE_USB_VID="239a"
+PECKUS_DEVICE_USB_PID="2025"
+PECKUS_DEVICE_BLE_NAME="PECKUS"
+
+# security related configuration variables
+PECKUS_CONSOLE_USB="FALSE"
+
+PECKUS_FILESYSTEM_KEEP_BOOT_OUT_TXT="FALSE"
+PECKUS_FILESYSTEM_KEEP_CONFIG_JSON="FALSE"
+PECKUS_FILESYSTEM_KEEP_SETTINGS_TOML="FALSE"
+
+# debugging (or for evaluation purposes) configuration options
+PECKUS_DEBUG="FALSE"
+PECKUS_DEBUG_BOOTPY_FACTORYRESET_ON_POWERON="FALSE"
+PECKUS_DEBUG_CODEPY_WAIT4CONSOLE="FALSE"
+PECKUS_DEBUG_CODEPY_WAIT4SECONDS="0"
+

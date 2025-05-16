@@ -1,33 +1,33 @@
 from microcontroller import cpu as microcontroller_cpu, \
                             ResetReason as microcontroller_ResetReason
-from gc import mem_free as gc_mem_free
+from supervisor import runtime as supervisor_runtime
 from time import sleep as time_sleep
+from gc import mem_free as gc_mem_free
 from traceback import print_exception as traceback_print_exception
 
-from peckus.application import Application
+from peckus.application import Application, \
+                               ApplicationState
 from peckus.workflow.job.led import Job as JobLed
-from peckus.workflow.action.ble import Action as ActionBLE
-from peckus.workflow.action.system import Action as ActionSystem
 
 
-g_looping_led_job = JobLed('red:blink', {'states': [{'RED':'ON', 'millis':250},{'RED':'OFF', 'millis':250}]})
-g_application = Application()
+job_blink_led_red   = JobLed('red:blink',   {'states': [{'RED':'ON',   'millis':250}, {'RED':'OFF',   'millis':250}]}, None)
+job_blink_led_green = JobLed('green:blink', {'states': [{'GREEN':'ON', 'millis':250}, {'GREEN':'OFF', 'millis':250}]}, None)
 
+g_looping_led_job = job_blink_led_red
 
-if g_application.getenv('PECKUS_DEBUG', 'FALSE').upper() == 'TRUE':
-    ActionSystem('delay', g_application.getenv('PECKUS_DEBUG_CODEPY_WAIT4SECONDS', '0'), {}).delay()
-    ActionSystem('console', g_application.getenv('PECKUS_DEBUG_CODEPY_WAIT4CONSOLE', 'FALSE'), {}).console()
-
-print(f"code.py: starting (RESET: {str(microcontroller_cpu.reset_reason).split('.').pop()} / RAM: {gc_mem_free()} bytes free)")
 try:
-    if g_application.load_configuration_nvm() is False:
-        if g_application.load_configuration_file() is False:
-            g_looping_led_job = JobLed('green:blink', {'states': [{'GREEN':'ON', 'millis':250},{'GREEN':'OFF', 'millis':250}]})
-            raise RuntimeError(f"PECKUS is uninitialized (running regular CIRCUITPY mode for configuration)")
-        g_application.save_configuration_nvm()
-        ActionBLE('reset', None, {}).reset()
-        ActionSystem('reset', None, {}).reset()
+    g_application = Application('code.py')
+    if g_application.getenv('PECKUS_DEBUG', 'FALSE').upper() == 'TRUE':
+        time_sleep(float(g_application.getenv('PECKUS_DEBUG_CODEPY_WAIT4SECONDS', '0')))
+        if g_application.getenv('PECKUS_DEBUG_CODEPY_WAIT4CONSOLE', 'FALSE').upper() == 'TRUE':
+            while supervisor_runtime.serial_connected is False:
+                time_sleep(0.1)
 
+    if g_application.load_configuration_nvm() is False and g_application.load_configuration_file() is False:
+        g_looping_led_job = job_blink_led_green
+        raise RuntimeError("PECKUS: no valid configuration (NVM & Filesystem) present")
+
+    print(f"code.py: starting (WORKFLOW: {g_application.get_session(ApplicationState.WORKFLOW)} / RESET: {str(microcontroller_cpu.reset_reason).split('.').pop()} / RAM: {gc_mem_free()} bytes free)")
     g_application.workflows_create()
     print(f"code.py: running (RAM: {gc_mem_free()} bytes free)")
     g_application.workflows_run()

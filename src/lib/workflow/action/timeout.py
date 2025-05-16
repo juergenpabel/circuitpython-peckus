@@ -6,7 +6,7 @@ from . import AbstractAction
 class Action(AbstractAction):
 
     def __init__(self, timeout_method: str, timeout_data: str, app_data: dict):
-        super().__init__("timeout", timeout_method, app_data)
+        super().__init__('timeout', timeout_method, app_data)
         self.timeout_data = timeout_data
 
 

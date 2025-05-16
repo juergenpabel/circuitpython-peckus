@@ -2,18 +2,18 @@ from time import monotonic as time_monotonic
 from re import match as re_match
 from traceback import print_exception as traceback_print_exception
 
-from . import AbstractJob
-
+from peckus.workflow.job import AbstractJob
+from peckus.workflow.jobs import JobScope
 
 class Job(AbstractJob):
 
-    def __init__(self, actions: dict, appdata: dict):
-        super().__init__('actions', 'default')
-        if 'action_classes' not in appdata:
-            appdata['action_classes'] =  {}
+    def __init__(self, actions: dict, app_data: dict):
+        super().__init__('actions', 'state', JobScope.WORKFLOW)
+        if 'action_classes' not in app_data:
+            app_data['action_classes'] =  {}
         self.actions = []
         for action in actions:
-            matches = re_match(r'^(\w+):(\w+)=(.*)$', action)
+            matches = re_match(r'^(\w+):([\w-]+)=(.*)$', action)
             if matches is None:
                 raise NameError(f"Invalid action syntax: {action}")
             matches = matches.groups()
@@ -23,8 +23,8 @@ class Job(AbstractJob):
                 action_method = matches[1]
                 action_params = matches[2]
                 exec(f'from peckus.workflow.action.{action_module} import Action as {action_class}')
-                appdata['action_classes'][action_class] = eval(action_class)
-                self.actions.append(appdata['action_classes'][action_class](action_method, action_params, appdata))
+                app_data['action_classes'][action_class] = eval(action_class)
+                self.actions.append(app_data['action_classes'][action_class](action_method, action_params, app_data))
 
 
     def begin(self) -> None:
