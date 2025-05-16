@@ -2,6 +2,7 @@
 ## - button-push for unlocking
 ## - 90sec timout for relocking
 ## - USB CDC serial (console/REPL) is enabled
+## - factory-reset upon power-on (every time after it was unplugged)
 
 # application configuration
 PECKUS_APP_CONFIG_FILENAME="peckus.json"
@@ -34,8 +35,8 @@ PECKUS_FILESYSTEM_KEEP_CONFIG_JSON="TRUE"
 PECKUS_FILESYSTEM_KEEP_SETTINGS_TOML="TRUE"
 
 # debugging (or for evaluation purposes) configuration options
-PECKUS_DEBUG="FALSE"
-PECKUS_DEBUG_BOOTPY_FACTORYRESET_ON_POWERON="FALSE"
+PECKUS_DEBUG="TRUE"
+PECKUS_DEBUG_BOOTPY_FACTORYRESET_ON_POWERON="TRUE"
 PECKUS_DEBUG_CODEPY_WAIT4CONSOLE="FALSE"
 PECKUS_DEBUG_CODEPY_WAIT4SECONDS="0"
 
