@@ -1,9 +1,10 @@
-from microcontroller import cpu as microcontroller_cpu
+from microcontroller import cpu as microcontroller_cpu, \
+                            ResetReason as microcontroller_ResetReason
 from board import BUTTON as board_BUTTON
 from digitalio import DigitalInOut as digitalio_DigitalInOut, \
                       Pull as digitalio_Pull
 
-from . import AbstractCondition
+from peckus.workflow.condition import AbstractCondition
 
 
 class Condition(AbstractCondition):
@@ -24,8 +25,7 @@ class Condition(AbstractCondition):
 
 
     def reset(self) -> bool:
-        result = str(microcontroller_cpu.reset_reason).split('.').pop() == 'RESET_PIN'
-        return str(result).upper() == self.button_value.upper()
+        return str(microcontroller_cpu.reset_reason == microcontroller_ResetReason.RESET_PIN).upper() == self.button_value.upper()
 
 
     def user(self) -> bool:

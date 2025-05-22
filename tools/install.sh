@@ -37,7 +37,7 @@ if [ $? -ne 0 ]; then
 fi
 
 
-echo "PECKUS-INSTALL: copying application files to '${CIRCUITPY_MOUNT}' (might take about 30 seconds)"
+echo "PECKUS-INSTALL: copying application files to '${CIRCUITPY_MOUNT}' (takes about 30 seconds)"
 ( cd "${CIRCUITPY_DIR}" ; cp -rL . "${CIRCUITPY_MOUNT}/" )
 if [ $? -ne 0 ]; then
 	echo "ERROR cp"
@@ -46,16 +46,33 @@ fi
 
 type mpy-cross > /dev/null 2> /dev/null
 if [ $? -eq 0 ]; then
-	echo "PECKUS-INSTALL: cross-compiling MPY files on '${CIRCUITPY_MOUNT}/lib/{cpstatemachine,peckus}' (might take about 15 seconds)"
+	echo "PECKUS-INSTALL: cross-compiling MPY files on '${CIRCUITPY_MOUNT}/lib/{cpstatemachine,peckus}' (takes about 15 seconds)"
 	find "${CIRCUITPY_MOUNT}/lib/cpstatemachine/" "${CIRCUITPY_MOUNT}/lib/peckus/" -name "*.py" -type f -exec mpy-cross {} \;
 	find "${CIRCUITPY_MOUNT}/lib/cpstatemachine/" "${CIRCUITPY_MOUNT}/lib/peckus/" -name "*.mpy" -type f | while read MPY ; do PY="${MPY:0:-4}.py" ; if [ -f "${PY}" ]; then rm "${PY}" ; fi ; done
 else
 	echo "WARNING: 'mpy-cross' not in PATH, skipping cross-compilation...expect much slower runtime performance"
 fi
 
+type fatattr > /dev/null 2> /dev/null
+if [ $? -eq 0 ]; then
+	echo "PECKUS-INSTALL: set hidden attribute on application files on '${CIRCUITPY_DEVICE}'"
+	find "${CIRCUITPY_MOUNT}" -mindepth 1 -maxdepth 1 -exec fatattr +h {} \;
+else
+	echo "WARNING: 'fatattr' not in PATH, not hiding application files on '{CIRCUITPY_MOUNT}' (this might bother or even confuse users)"
+fi
+
 echo "PECKUS-INSTALL: unmounting '${CIRCUITPY_DEVICE}'"
 sudo umount -q "${CIRCUITPY_MOUNT}"
 sudo rmdir "${CIRCUITPY_MOUNT}"
+
+PATH=${PATH}:/sbin/:/usr/sbin/:/usr/local/sbin/ type fsck.vfat > /dev/null 2> /dev/null
+if [ $? -eq 0 ]; then
+	echo "PECKUS-INSTALL: checking filesystem on '${CIRCUITPY_DEVICE}'"
+	sudo fsck.vfat -a "${CIRCUITPY_DEVICE}" > /dev/null
+else
+	echo "WARNING: 'fsck.vfat' not found, not checking filesystem on '{CIRCUITPY_DEVICE}' (there might be filesystem warnings later on)"
+fi
+
 echo "PECKUS-INSTALL: syncing"
 sudo sync
 sleep 1

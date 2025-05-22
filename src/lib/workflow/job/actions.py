@@ -3,14 +3,13 @@ from re import match as re_match
 from traceback import print_exception as traceback_print_exception
 
 from peckus.workflow.job import AbstractJob
-from peckus.workflow.jobs import JobScope
 
 class Job(AbstractJob):
 
     def __init__(self, actions: dict, app_data: dict):
-        super().__init__('actions', 'state', JobScope.WORKFLOW)
-        if 'action_classes' not in app_data:
-            app_data['action_classes'] =  {}
+        super().__init__('actions', 'state', app_data)
+        if 'action_classes' not in self.app_data:
+            self.app_data['action_classes'] =  {}
         self.actions = []
         for action in actions:
             matches = re_match(r'^(\w+):([\w-]+)=(.*)$', action)
@@ -24,7 +23,7 @@ class Job(AbstractJob):
                 action_params = matches[2]
                 exec(f'from peckus.workflow.action.{action_module} import Action as {action_class}')
                 app_data['action_classes'][action_class] = eval(action_class)
-                self.actions.append(app_data['action_classes'][action_class](action_method, action_params, app_data))
+                self.actions.append(app_data['action_classes'][action_class](action_method, action_params, self.app_data))
 
 
     def begin(self) -> None:

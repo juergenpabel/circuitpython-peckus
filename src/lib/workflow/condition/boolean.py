@@ -9,9 +9,9 @@ class Condition(AbstractCondition):
 
 
     def true(self) -> bool:
-        return 'TRUE' == self.boolean_params.upper()
+        return str(True).upper() == self.boolean_params.upper()
 
 
     def false(self) -> bool:
-        return 'FALSE' == self.boolean_params.upper()
+        return str(False).upper() == self.boolean_params.upper()
 

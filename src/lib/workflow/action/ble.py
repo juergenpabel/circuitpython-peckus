@@ -32,7 +32,7 @@ class Action(AbstractAction):
 
 
     def advertise(self) -> None:
-        if self.ble_data.upper() == 'TRUE':
+        if self.ble_data.upper() == str(True).upper():
             advertisement = ble_ProvideServicesAdvertisement(ble_HIDService())
             advertisement.appearance = 960
             advertisement.connectable = True

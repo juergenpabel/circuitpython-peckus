@@ -21,24 +21,33 @@ class Action(AbstractAction):
 
 
     def mount(self) -> None:
-        rw_option = self.filesystem_data.upper()
-        if 'vfs' not in self.app_data['filesystem']:
-            raise ValueError(f"Action<filesystem>.mount({rw_option}) not possible (not previously unmounted)")
+        mount_dir = '/'
+        rw_option = self.filesystem_data
+        if ':' in self.filesystem_data:
+            mount_dir, rw_option = self.filesystem_data.split(':', 1)
+        rw_option = rw_option.upper()
+        if f'vfs:{mount_dir}' not in self.app_data['filesystem']:
+            raise ValueError(f"Action<filesystem>.mount('{mount_dir}':'{rw_option}') not possible ('{mount_dir}' not previously unmounted)")
         if rw_option not in Action.RW_OPTIONS.keys():
-            raise ValueError(f"Action<filesystem>.mount({rw_option}) not valid (only {list(Action.RW_OPTIONS.keys())})")
-        storage_mount(self.app_data['filesystem']['vfs'], '/', readonly=Action.RW_OPTIONS[rw_option])
+            raise ValueError(f"Action<filesystem>.mount('{mount_dir}':'{rw_option}') read-write option invalid (only {list(Action.RW_OPTIONS.keys())})")
+        storage_mount(self.app_data['filesystem'][f'vfs:{mount_dir}'], mount_dir, readonly=Action.RW_OPTIONS[rw_option])
 
 
     def remount(self) -> None:
-        rw_option = self.filesystem_data.upper()
+        mount_dir = '/'
+        rw_option = self.filesystem_data
+        if ':' in self.filesystem_data:
+            mount_dir, rw_option = self.filesystem_data.split(':', 1)
+        rw_option = rw_option.upper()
         if rw_option not in Action.RW_OPTIONS.keys():
-            raise ValueError(f"Action<filesystem>.remount({rw_option}) not valid (only {list(Action.RW_OPTIONS.keys())})")
-        storage_remount('/', readonly=Action.RW_OPTIONS[rw_option])
+            raise ValueError(f"Action<filesystem>.remount('{mount_dir}', '{rw_option}') read-write option invalid (only {list(Action.RW_OPTIONS.keys())})")
+        storage_remount(mount_dir, readonly=Action.RW_OPTIONS[rw_option])
 
 
     def umount(self) -> None:
-        self.app_data['filesystem']['vfs'] = storage_getmount('/')
-        storage_umount('/')
+        mount_dir = self.filesystem_data
+        self.app_data['filesystem'][f'vfs:{mount_dir}'] = storage_getmount(mount_dir)
+        storage_umount(mount_dir)
 
 
     def file_move(self) -> None:
@@ -54,6 +63,14 @@ class Action(AbstractAction):
         except Exception as e:
             print(e)
         os_sync()
+
+
+    def file_remove(self) -> None:
+            try:
+                os_remove(self.filesystem_data)
+            except Exception as e:
+                pass
+            os_sync()
 
 
     def file_shred(self) -> None:

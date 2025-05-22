@@ -1,9 +1,12 @@
 class AbstractJob:
 
-    def __init__(self, job_class: str, job_name: str, job_scope: str):
+    def __init__(self, job_class: str, job_name: str, app_data: dict):
+        self.app_data = app_data
+        if job_class not in self.app_data:
+            self.app_data[job_class] = {}
         self.job_class = job_class
         self.job_name = job_name
-        self.job_scope = job_scope
+        self.app_data = app_data
 
 
     def begin(self) -> None:
@@ -16,16 +19,4 @@ class AbstractJob:
 
     def finish(self) -> None:
         raise NotImplementedError(f"Job<{self.job_class}>.exit() not implemented")
-
-
-    def name(self) -> bool:
-        return self.job_name
-
-
-    def scope(self) -> str:
-        return self.job_scope
-
-
-    def concurrency(self) -> bool:
-        return True
 

@@ -12,8 +12,10 @@ from traceback import print_exception as traceback_print_exception
 from peckus.application import Application, \
                                ApplicationState
 from peckus.workflow.action.peckus import Action as ActionPECKUS
+from peckus.util.print import Print
 
 
+g_print = Print(os_getenv('PECKUS_DEBUG', 'FALSE') == 'TRUE')
 print(f"boot.py: starting (RESET: {str(microcontroller_cpu.reset_reason).split('.').pop()} / RAM: {gc_mem_free()} bytes free / TIME: {time_monotonic():.3f})")
 try:
     if microcontroller_cpu.reset_reason == microcontroller_ResetReason.POWER_ON:
@@ -30,8 +32,10 @@ try:
         application.workflows_create()
         application.workflows_run()
 except Exception as e:
+    g_print.enable()
     print(f"PECKUS: exception '{e}'")
     traceback_print_exception(e)
+    g_print.disable()
 
 supervisor_runtime.autoreload = False
 usb_hid_disable()

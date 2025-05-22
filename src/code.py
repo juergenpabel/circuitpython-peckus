@@ -10,16 +10,15 @@ from peckus.application import Application, \
 from peckus.workflow.job.led import Job as JobLed
 
 
-job_blink_led_red   = JobLed('red:blink',   {'states': [{'RED':'ON',   'millis':250}, {'RED':'OFF',   'millis':250}]}, None)
-job_blink_led_green = JobLed('green:blink', {'states': [{'GREEN':'ON', 'millis':250}, {'GREEN':'OFF', 'millis':250}]}, None)
+job_blink_led_red   = JobLed('red:blink',   {'states': [{'RED':'ON',   'millis':250}, {'RED':'OFF',   'millis':250}]}, {})
+job_blink_led_green = JobLed('green:blink', {'states': [{'GREEN':'ON', 'millis':250}, {'GREEN':'OFF', 'millis':250}]}, {})
 
 g_looping_led_job = job_blink_led_red
 
 try:
     g_application = Application('code.py')
     if g_application.getenv('PECKUS_DEBUG', 'FALSE').upper() == 'TRUE':
-        time_sleep(float(g_application.getenv('PECKUS_DEBUG_CODEPY_WAIT4SECONDS', '0')))
-        if g_application.getenv('PECKUS_DEBUG_CODEPY_WAIT4CONSOLE', 'FALSE').upper() == 'TRUE':
+        if g_application.getenv('PECKUS_DEBUG_CODEPY_WAIT4CONSOLE', 'FALSE').upper() == 'TRUE' and g_application.getenv('PECKUS_CONSOLE_USB', 'FALSE').upper() == 'TRUE':
             while supervisor_runtime.serial_connected is False:
                 time_sleep(0.1)
 

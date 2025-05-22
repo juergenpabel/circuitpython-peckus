@@ -20,7 +20,7 @@ class Action(AbstractAction):
 
 
     def usb_storage(self) -> None:
-        if self.circuitpython_data.upper() == 'TRUE':
+        if self.circuitpython_data.upper() == str(True).upper():
             storage_enable_usb_drive()
             print(f"PECKUS: enabled USB storage")
         else:
@@ -29,7 +29,7 @@ class Action(AbstractAction):
 
 
     def usb_serial(self) -> None:
-        if self.circuitpython_data.upper() == 'TRUE':
+        if self.circuitpython_data.upper() == str(True).upper():
             usb_cdc_enable()
             print(f"PECKUS: enabled USB console")
         else:
@@ -38,7 +38,7 @@ class Action(AbstractAction):
 
 
     def ble_network(self) -> None:
-        if self.circuitpython_data.upper() == 'TRUE':
+        if self.circuitpython_data.upper() == str(True).upper():
             supervisor_runtime.ble_workflow = True
             print(f"PECKUS: enabled BLE network")
         else:

@@ -12,7 +12,7 @@
 		"RELOCK_TIMEOUT":                        {"default": "TRUE",          "validator": "boolean"},
 		"RELOCK_TIMEOUT_SECS":                   {"default": "300",           "validator": "integer"},
 		"RELOCK_PRESENCE_BLE":                   {"default": "FALSE",         "validator": "boolean"},
-		"RELOCK_PRESENCE_BLE_GRACE_SECS":        {"default": "0",             "validator": "integer"},
+		"RELOCK_PRESENCE_BLE_GRACE_SECS":        {"default": "15",            "validator": "integer"},
 
 		"DEVICE_USB_VENDOR":                     {"default": "CIRCUITPYTHON", "validator": "string"},
 		"DEVICE_USB_PRODUCT":                    {"default": "PECKUS",        "validator": "string"},
@@ -22,14 +22,9 @@
 
 		"CONSOLE_USB":                           {"default": "FALSE",         "validator": "boolean"},
 
-		"FILESYSTEM_KEEP_BOOT_OUT_TXT":          {"default": "TRUE",          "validator": "boolean"},
-		"FILESYSTEM_KEEP_CONFIG_JSON":           {"default": "TRUE",          "validator": "boolean"},
-		"FILESYSTEM_KEEP_SETTINGS_TOML":         {"default": "TRUE",          "validator": "boolean"},
-
 		"DEBUG":                                 {"default": "FALSE",         "validator": "boolean"},
 		"DEBUG_BOOTPY_FACTORYRESET_ON_POWERON":  {"default": "FALSE",         "validator": "boolean"},
-		"DEBUG_CODEPY_WAIT4CONSOLE":             {"default": "FALSE",         "validator": "boolean"},
-		"DEBUG_CODEPY_WAIT4SECONDS":             {"default": "0",             "validator": "integer"}
+		"DEBUG_CODEPY_WAIT4CONSOLE":             {"default": "FALSE",         "validator": "boolean"}
 	},
 	"application":
 	{
@@ -44,51 +39,42 @@
 						{
 							"name":        "BOOT",
 							"actions":     ["peckus:requirements=['UNLOCK_BTN={UNLOCK_PRESENCE_BTN}', 'UNLOCK_BLE={UNLOCK_PRESENCE_BLE}']",
-							                "peckus:requirement-validity-button-reset=UNLOCK_BTN:{UNLOCK_PRESENCE_BTN_VALIDITY_SECS}"],
-							"transitions": [{"state": "BOOT:CONFIGURATION", "conditions": ["peckus:runtime=INSTALLED"]},
-							                {"state": "BOOT:DEPLOYMENT",    "conditions": ["peckus:runtime=CONFIGURED"]},
-							                {"state": "BOOT:UNLOCKED",      "conditions": ["peckus:runtime=DEPLOYED",
-							                                                               "boolean:true={UNLOCK_PRESENCE_BTN}", "peckus:requirement-valid=UNLOCK_BTN",
-							                                                               "boolean:true={UNLOCK_PRESENCE_BLE}", "peckus:requirement-valid=UNLOCK_BLE"]},
-							                {"state": "BOOT:UNLOCKED",      "conditions": ["peckus:runtime=DEPLOYED",
-							                                                               "boolean:false={UNLOCK_PRESENCE_BTN}",
-							                                                               "boolean:true={UNLOCK_PRESENCE_BLE}", "peckus:requirement-valid=UNLOCK_BLE"]},
-							                {"state": "BOOT:UNLOCKED",      "conditions": ["peckus:runtime=DEPLOYED",
-							                                                               "boolean:true={UNLOCK_PRESENCE_BTN}", "peckus:requirement-valid=UNLOCK_BTN",
-							                                                               "boolean:false={UNLOCK_PRESENCE_BLE}"]},
-							                {"state": "BOOT:LOCKED",        "conditions": ["peckus:runtime=DEPLOYED",
-							                                                               "peckus:requirement-invalid=UNLOCK_BTN"]},
-							                {"state": "BOOT:LOCKED",        "conditions": ["peckus:runtime=DEPLOYED",
-							                                                               "peckus:requirement-invalid=UNLOCK_BLE"]}],
+							                "peckus:requirement-button-reset=UNLOCK_BTN:{UNLOCK_PRESENCE_BTN}:{UNLOCK_PRESENCE_BTN_VALIDITY_SECS}"],
+							"transitions": [{"state": "BOOT:CONFIGURATION", "conditions": ["storage:application=INSTALLED"]},
+							                {"state": "BOOT:DEPLOYMENT",    "conditions": ["storage:application=CONFIGURED"]},
+							                {"state": "BOOT:UNLOCKED",      "conditions": ["storage:application=DEPLOYED", "peckus:requirements=TRUE"]},
+							                {"state": "BOOT:LOCKED",        "conditions": ["storage:application=DEPLOYED", "peckus:requirements=FALSE"]}],
 							"jobs":        []
 						},
 						{
 							"name":        "BOOT:CONFIGURATION",
-							"actions":     ["peckus:configure={APP_CONFIG_FILENAME}"],
+							"actions":     ["peckus:configure={APP_CONFIG_FILENAME}", "storage:application=CONFIGURED"],
 							"transitions": [{"state": "BOOT:DEPLOYMENT", "conditions": []}],
 							"jobs":        []
 						},
 						{
 							"name":        "BOOT:DEPLOYMENT",
-							"actions":     ["circuitpython:usb-storage=TRUE", "filesystem:remount=READONLY", "peckus:workflow=DEPLOYMENT"],
+							"actions":     ["circuitpython:usb-storage=TRUE", "filesystem:remount=/:READONLY", "session:workflow=DEPLOYMENT"],
 							"transitions": [{"state": "BOOT:EXECUTE", "conditions": []}],
 							"jobs":        []
 						},
 						{
 							"name":        "BOOT:UNLOCKED",
-							"actions":     ["circuitpython:usb-storage=TRUE", "filesystem:remount=READWRITE", "peckus:workflow=UNLOCKED"],
+							"actions":     ["circuitpython:usb-storage=TRUE", "filesystem:remount=/:READWRITE",
+							                "circuitpython:ble-network={RELOCK_PRESENCE_BLE}", "session:workflow=UNLOCKED"],
 							"transitions": [{"state": "BOOT:EXECUTE", "conditions": []}],
 							"jobs":        []
 						},
 						{
 							"name":        "BOOT:LOCKED",
-							"actions":     ["circuitpython:usb-storage=FALSE", "filesystem:remount=READONLY", "peckus:workflow=LOCKED"],
+							"actions":     ["circuitpython:usb-storage=FALSE", "filesystem:remount=/:READONLY",
+							                "circuitpython:ble-network={UNLOCK_PRESENCE_BLE}", "session:workflow=LOCKED"],
 							"transitions": [{"state": "BOOT:EXECUTE", "conditions": []}],
 							"jobs":        []
 						},
 						{
 							"name":        "BOOT:EXECUTE",
-							"actions":     ["circuitpython:usb-serial={CONSOLE_USB}", "circuitpython:ble-network={UNLOCK_PRESENCE_BLE}", "workflow:exit=TRUE"],
+							"actions":     ["circuitpython:usb-serial={CONSOLE_USB}", "workflow:exit=TRUE"],
 							"transitions": [],
 							"jobs":        []
 						}
@@ -121,26 +107,20 @@
 						{
 							"name":        "DEPLOYMENT:BLE-CONNECTING",
 							"actions":     [],
-							"transitions": [{"state": "DEPLOYMENT:BLE-READY", "conditions": ["ble:connected=TRUE"]}],
+							"transitions": [{"state": "DEPLOYMENT:PAYLOAD-WAIT", "conditions": ["ble:connected=TRUE"]}],
 							"jobs":        [{"job": "led", "name": "blue:blink",  "data": {"states": [{"BLUE": "ON",  "millis": 250}, {"BLUE": "OFF", "millis": 250}]}}]
 						},
 						{
-							"name":        "DEPLOYMENT:BLE-READY",
-							"actions":     ["ble:advertise=FALSE"],
-							"transitions": [{"state": "DEPLOYMENT:PAYLOAD-WAIT", "conditions": []}],
-							"jobs":        []
-						},
-						{
 							"name":        "DEPLOYMENT:PAYLOAD-WAIT",
-							"actions":     [],
-							"transitions": [{"state": "DEPLOYMENT:PAYLOAD-READY", "conditions": ["filesystem:exists={APP_PAYLOAD_FILENAME}"]}],
+							"actions":     ["circuitpython:delay=1", "ble:advertise=FALSE"],
+							"transitions": [{"state": "DEPLOYMENT:READY", "conditions": ["filesystem:exists={APP_PAYLOAD_FILENAME}"]}],
 							"jobs":        [{"job": "led", "name": "green:blink", "data": {"states": [{"GREEN": "ON",  "millis": 500}, {"GREEN": "OFF", "millis": 500}]}}]
 						},
 						{
-							"name":        "DEPLOYMENT:PAYLOAD-READY",
-							"actions":     ["peckus:runtime=DEPLOYED", "peckus:restart=BOOT"],
+							"name":        "DEPLOYMENT:READY",
+							"actions":     ["storage:application=DEPLOYED", "session:workflow=BOOT"],
 							"transitions": [],
-							"jobs":        []
+							"jobs":        [{"job": "led", "name": "white",  "data": {"states": [{"RED": "ON", "GREEN": "ON", "BLUE": "ON"}]}}]
 						}
 					]
 				},
@@ -151,14 +131,10 @@
 					[
 						{
 							"name":        "LOCKED",
-							"actions":     ["peckus:requirements=None"],
-							"transitions": [{"state": "LOCKED:UNLOCK", "conditions": ["boolean:true={UNLOCK_PRESENCE_BTN}", "peckus:requirement-valid=UNLOCK_BTN",
-							                                                          "boolean:true={UNLOCK_PRESENCE_BLE}", "peckus:requirement-valid=UNLOCK_BLE"]},
-							                {"state": "LOCKED:UNLOCK", "conditions": ["boolean:false={UNLOCK_PRESENCE_BTN}",
-							                                                          "boolean:true={UNLOCK_PRESENCE_BLE}", "peckus:requirement-valid=UNLOCK_BLE"]},
-							                {"state": "LOCKED:UNLOCK", "conditions": ["boolean:true={UNLOCK_PRESENCE_BTN}", "peckus:requirement-valid=UNLOCK_BTN",
-							                                                          "boolean:false={UNLOCK_PRESENCE_BLE}"]}],
-							"jobs":        [{"job": "led", "scope": "workflow", "name": "red:on", "data": {"states": [{"RED": "ON"}]}}]
+							"actions":     ["peckus:requirements=['UNLOCK_BTN={UNLOCK_PRESENCE_BTN}','UNLOCK_BLE={UNLOCK_PRESENCE_BLE}']",
+							                "filesystem:umount=/"],
+							"transitions": [{"state": "LOCKED:UNLOCK", "conditions": ["peckus:requirements=TRUE"]}],
+							"jobs":        [{"job": "led", "name": "red:on", "data": {"lifetime": "workflow", "states": [{"RED": "ON"}]}}]
 						},
 						{
 							"name":        "LOCKED:UNLOCK",
@@ -174,27 +150,19 @@
 					[
 						{
 							"name":        "UNLOCK:BTN",
-							"actions":     ["peckus:requirements=['UNLOCK_BTN={UNLOCK_PRESENCE_BTN}']"],
+							"actions":     ["peckus:requirement=UNLOCK_BTN:FALSE:0"],
 							"transitions": [{"state": "UNLOCK:BTN:CHECK", "conditions": ["boolean:true={UNLOCK_PRESENCE_BTN}"]}],
 							"jobs":        []
 						},
 						{
 							"name":        "UNLOCK:BTN:CHECK",
 							"actions":     [],
-							"transitions": [{"state": "UNLOCK:BTN:CHECK-BTN", "conditions": ["peckus:requirement-invalid=UNLOCK_BTN:15"]}],
+							"transitions": [{"state": "UNLOCK:BTN:PRESENCE", "conditions": ["button:user=TRUE"]}],
 							"jobs":        []
 						},
 						{
-							"name":        "UNLOCK:BTN:CHECK-BTN",
-							"actions":     [],
-							"transitions": [{"state": "UNLOCK:BTN:PRESENCE-BTN", "conditions": ["button:reset=TRUE"]},
-							                {"state": "UNLOCK:BTN:PRESENCE-BTN", "conditions": ["button:user=TRUE"]},
-							                {"state": "UNLOCK:BTN:CHECK",        "conditions": ["button:reset=FALSE", "button:user=FALSE"]}],
-							"jobs":        []
-						},
-						{
-							"name":        "UNLOCK:BTN:PRESENCE-BTN",
-							"actions":     ["peckus:requirement-validity=UNLOCK_BTN:{UNLOCK_PRESENCE_BTN_VALIDITY_SECS}"],
+							"name":        "UNLOCK:BTN:PRESENCE",
+							"actions":     ["peckus:requirement=UNLOCK_BTN:TRUE:{UNLOCK_PRESENCE_BTN_VALIDITY_SECS}"],
 							"transitions": [{"state": "UNLOCK:BTN:CHECK", "conditions": []}],
 							"jobs":        []
 						}
@@ -206,28 +174,28 @@
 					[
 						{
 							"name":        "UNLOCK:BLE",
-							"actions":     ["peckus:requirements=['UNLOCK_BLE={UNLOCK_PRESENCE_BLE}']"],
+							"actions":     ["peckus:requirement=UNLOCK_BLE:FALSE:0"],
 							"transitions": [{"state": "UNLOCK:BLE:CHECK", "conditions": ["boolean:true={UNLOCK_PRESENCE_BLE}"]}],
 							"jobs":        []
 						},
 						{
 							"name":        "UNLOCK:BLE:CHECK",
 							"actions":     [],
-							"transitions": [{"state": "UNLOCK:BLE:CHECK-BLE", "conditions": ["peckus:requirement-invalid=UNLOCK_BLE:15"]}],
+							"transitions": [{"state": "UNLOCK:BLE:PRESENCE", "conditions": ["ble:connected=TRUE"]},
+							                {"state": "UNLOCK:BLE:ABSENCE",  "conditions": ["ble:connected=FALSE"]}],
 							"jobs":        []
 						},
 						{
-							"name":        "UNLOCK:BLE:CHECK-BLE",
+							"name":        "UNLOCK:BLE:ABSENCE",
 							"actions":     [],
-							"transitions": [{"state": "UNLOCK:BLE:PRESENCE-BLE", "conditions": ["ble:connected=TRUE"]},
-							                {"state": "UNLOCK:BLE:CHECK",        "conditions": ["ble:connected=FALSE"]}],
-							"jobs":        []
+							"transitions": [{"state": "UNLOCK:BLE:CHECK", "conditions": []}],
+							"jobs":        [{"job": "led", "name": "red:on", "data": {"lifetime": "workflow", "states": [{"RED": "ON"}]}}]
 						},
 						{
-							"name":        "UNLOCK:BLE:PRESENCE-BLE",
-							"actions":     ["peckus:requirement-validity=UNLOCK_BLE:{UNLOCK_PRESENCE_BLE_VALIDITY_SECS}"],
+							"name":        "UNLOCK:BLE:PRESENCE",
+							"actions":     ["peckus:requirement=UNLOCK_BLE:TRUE:{UNLOCK_PRESENCE_BLE_VALIDITY_SECS}"],
 							"transitions": [{"state": "UNLOCK:BLE:CHECK", "conditions": []}],
-							"jobs":        []
+							"jobs":        [{"job": "led", "name": "red+blue:on", "data": {"lifetime": "workflow", "states": [{"RED": "ON", "BLUE": "ON"}]}}]
 						}
 					]
 				},
@@ -238,15 +206,43 @@
 					[
 						{
 							"name":        "UNLOCKED",
-							"actions":     ["peckus:requirements=None",
-							                "peckus:requirements=['RELOCK_TIMEOUT={RELOCK_TIMEOUT}','RELOCK_BLE={RELOCK_PRESENCE_BLE}']",
-							                "peckus:requirement-validity=RELOCK_TIMEOUT:{RELOCK_TIMEOUT_SECS}",
-							                "peckus:requirement-validity=RELOCK_BLE:{RELOCK_PRESENCE_BLE_GRACE_SECS}"],
-							"transitions": [{"state": "UNLOCKED:RELOCK", "conditions": ["boolean:true={RELOCK_PRESENCE_BLE}", 
-							                                                            "peckus:requirement-invalid=RELOCK_BLE"]},
-							                {"state": "UNLOCKED:RELOCK", "conditions": ["boolean:true={RELOCK_TIMEOUT}", 
-							                                                            "peckus:requirement-invalid=RELOCK_TIMEOUT"]}],
-							"jobs":        [{"job": "led", "name": "green:on", "data": {"states": [{"GREEN": "ON"}]}}]
+							"actions":     ["peckus:requirements=['RELOCK_TIMEOUT={RELOCK_TIMEOUT}','RELOCK_BLE={RELOCK_PRESENCE_BLE}']"],
+							"transitions": [{"state": "UNLOCKED:SETUP:TIMEOUT+BLE", "conditions": ["boolean:true={RELOCK_TIMEOUT}",  "boolean:true={RELOCK_PRESENCE_BLE}"]},
+							                {"state": "UNLOCKED:SETUP:TIMEOUT",     "conditions": ["boolean:true={RELOCK_TIMEOUT}",  "boolean:false={RELOCK_PRESENCE_BLE}"]},
+							                {"state": "UNLOCKED:SETUP:BLE",         "conditions": ["boolean:false={RELOCK_TIMEOUT}", "boolean:true={RELOCK_PRESENCE_BLE}"]},
+							                {"state": "UNLOCKED:SETUP:FOREVER",     "conditions": ["boolean:false={RELOCK_TIMEOUT}", "boolean:false={RELOCK_PRESENCE_BLE}"]}],
+							"jobs":        [{"job": "led", "name": "green:on", "data": {"lifetime": "workflow", "states": [{"GREEN": "ON"}]}}]
+						},
+						{
+							"name":        "UNLOCKED:SETUP:TIMEOUT+BLE",
+							"actions":     ["peckus:requirement=RELOCK_TIMEOUT:TRUE:{RELOCK_TIMEOUT_SECS}",
+							                "peckus:requirement=RELOCK_BLE:TRUE:{RELOCK_PRESENCE_BLE_GRACE_SECS}"],
+							"transitions": [{"state": "UNLOCKED:WAIT", "conditions": []}],
+							"jobs":        []
+						},
+						{
+							"name":        "UNLOCKED:SETUP:TIMEOUT",
+							"actions":     ["peckus:requirement=RELOCK_TIMEOUT:TRUE:{RELOCK_TIMEOUT_SECS}", "peckus:requirement=RELOCK_BLE:FALSE:0"],
+							"transitions": [{"state": "UNLOCKED:WAIT", "conditions": []}],
+							"jobs":        []
+						},
+						{
+							"name":        "UNLOCKED:SETUP:BLE",
+							"actions":     ["peckus:requirement=RELOCK_TIMEOUT:FALSE:0", "peckus:requirement=RELOCK_BLE:TRUE:{RELOCK_PRESENCE_BLE_GRACE_SECS}"],
+							"transitions": [{"state": "UNLOCKED:WAIT", "conditions": []}],
+							"jobs":        []
+						},
+						{
+							"name":        "UNLOCKED:SETUP:FOREVER",
+							"actions":     ["peckus:requirement=RELOCK_TIMEOUT:FALSE:0", "peckus:requirement=RELOCK_BLE:FALSE:0"],
+							"transitions": [{"state": "UNLOCKED:WAIT", "conditions": []}],
+							"jobs":        []
+						},
+						{
+							"name":        "UNLOCKED:WAIT",
+							"actions":     [],
+							"transitions": [{"state": "UNLOCKED:RELOCK", "conditions": ["peckus:requirements=FALSE"]}],
+							"jobs":        []
 						},
 						{
 							"name":        "UNLOCKED:RELOCK",
@@ -263,27 +259,21 @@
 						{
 							"name":        "RELOCK:TIME",
 							"actions":     [],
-							"transitions": [{"state": "RELOCK:TIME:START", "conditions": ["boolean:true={RELOCK_TIMEOUT}"]}],
+							"transitions": [{"state": "RELOCK:TIME:WAITING", "conditions": ["boolean:true={RELOCK_TIMEOUT}"]}],
 							"jobs":        []
 						},
 						{
-							"name":        "RELOCK:TIME:START",
-							"actions":     ["timeout:seconds=RELOCK-TIMEOUT:{RELOCK_TIMEOUT_SECS}"],
-							"transitions": [{"state": "RELOCK:TIME:WAIT", "conditions": []}],
-							"jobs":        []
-						},
-						{
-							"name":        "RELOCK:TIME:WAIT",
+							"name":        "RELOCK:TIME:WAITING",
 							"actions":     [],
-							"transitions": [{"state": "RELOCK:TIME:EXECUTE", "conditions": ["timeout:expired=RELOCK-TIMEOUT"]},
-							                {"state": "RELOCK:TIME:EXECUTE", "conditions": ["timeout:unknown=RELOCK-TIMEOUT"]}],
+							"transitions": [{"state": "RELOCK:TIME:ENDING", "conditions": ["peckus:requirement=RELOCK_TIMEOUT:FALSE:15"]}],
 							"jobs":        []
 						},
 						{
-							"name":        "RELOCK:TIME:EXECUTE",
-							"actions":     ["peckus:requirement-validity=RELOCK_TIMEOUT:-1"],
+							"name":        "RELOCK:TIME:ENDING",
+							"actions":     [],
 							"transitions": [],
-							"jobs":        []
+							"jobs":        [{"job": "led", "name": "green+red:blink",  "data": {"states": [{"GREEN": "ON", "millis": 500},
+							                                                                               {"RED":   "ON", "millis": 500}]}}]
 						}
 					]
 				},
@@ -294,37 +284,28 @@
 						{
 							"name":        "RELOCK:BLE",
 							"actions":     [],
-							"transitions": [{"state": "RELOCK:BLE:CONNECT", "conditions": ["boolean:true={RELOCK_PRESENCE_BLE}"]}],
+							"transitions": [{"state": "RELOCK:BLE:CONNECTING", "conditions": ["boolean:true={RELOCK_PRESENCE_BLE}"]}],
 							"jobs":        []
 						},
 						{
-							"name":        "RELOCK:BLE:CONNECT",
-							"actions":     ["timeout:seconds=RELOCK-BLE-UNCONNECTED:{RELOCK_PRESENCE_BLE_GRACE_SECS}"],
-							"transitions": [{"state": "RELOCK:BLE:CONNECTED", "conditions": ["ble:connected=TRUE"]},
-							                {"state": "RELOCK:BLE:EXECUTE",   "conditions": ["timeout:unknown=RELOCK-BLE-UNCONNECTED"]},
-							                {"state": "RELOCK:BLE:EXECUTE",   "conditions": ["timeout:expired=RELOCK-BLE-UNCONNECTED"]}],
-							"jobs":        []
+							"name":        "RELOCK:BLE:CONNECTING",
+							"actions":     [],
+							"transitions": [{"state": "RELOCK:BLE:CONNECTED", "conditions": ["ble:connected=TRUE"]}],
+							"jobs":        [{"job": "led", "name": "green+blue:blink",  "data": {"states": [{"BLUE": "ON", "millis": 500},
+							                                                                                {"GREEN": "ON", "millis": 500}]}}]
 						},
 						{
 							"name":        "RELOCK:BLE:CONNECTED",
-							"actions":     ["timeout:remove=RELOCK-BLE-UNCONNECTED", "timeout:remove=RELOCK-BLE-DISCONNECTED",
-							                "peckus:requirement-validity=RELOCK_BLE:0"],
+							"actions":     ["peckus:requirement=RELOCK_BLE:TRUE:0"],
 							"transitions": [{"state": "RELOCK:BLE:DISCONNECTED", "conditions": ["ble:connected=FALSE"]}],
 							"jobs":        []
 						},
 						{
 							"name":        "RELOCK:BLE:DISCONNECTED",
-							"actions":     ["timeout:seconds=RELOCK-BLE-DISCONNECTED:{RELOCK_PRESENCE_BLE_GRACE_SECS}"],
-							"transitions": [{"state": "RELOCK:BLE:CONNECTED", "conditions": ["ble:connected=TRUE"]},
-							                {"state": "RELOCK:BLE:EXECUTE",   "conditions": ["timeout:unknown=RELOCK-BLE-DISCONNECTED"]},
-							                {"state": "RELOCK:BLE:EXECUTE",   "conditions": ["timeout:expired=RELOCK-BLE-DISCONNECTED"]}],
-							"jobs":        []
-						},
-						{
-							"name":        "RELOCK:BLE:EXECUTE",
-							"actions":     ["peckus:requirement-validity=RELOCK_BLE:-1"],
-							"transitions": [],
-							"jobs":        []
+							"actions":     ["peckus:requirement=RELOCK_BLE:TRUE:{RELOCK_PRESENCE_BLE_GRACE_SECS}"],
+							"transitions": [{"state": "RELOCK:BLE:CONNECTED", "conditions": ["ble:connected=TRUE"]}],
+							"jobs":        [{"job": "led", "name": "green+blue:blink",  "data": {"states": [{"BLUE": "ON", "millis": 500},
+							                                                                                {"GREEN": "ON", "millis": 500}]}}]
 						}
 					]
 				}

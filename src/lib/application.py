@@ -43,10 +43,10 @@ class Application:
         self.data['nvm']['size'] = len(microcontroller_nvm)
         self.data['nvm']['storage'] = {}
         self.data['nvm']['storage']['offset'] = 0
-        self.data['nvm']['storage']['length'] = 256
+        self.data['nvm']['storage']['length'] = 64
         self.data['nvm']['config'] = {}
-        self.data['nvm']['config']['offset'] = 256
-        self.data['nvm']['config']['length'] = len(microcontroller_nvm)-256
+        self.data['nvm']['config']['offset'] = 64
+        self.data['nvm']['config']['length'] = len(microcontroller_nvm)-64
         self.data['session'] = Session()
         self.data['storage'] = Storage(self.data['nvm']['storage']['offset'], self.data['nvm']['storage']['length'])
         if self.data['storage'].get(ApplicationState.RUNTIME) is None:
@@ -66,7 +66,7 @@ class Application:
         return self.data['session'].get(key)
 
 
-    def set_session(self, key: str, value: Any, validity: int=None) -> None:
+    def set_session(self, key: str, value: Any, validity: int=0) -> None:
         return self.data['session'].set(key, value, validity)
 
 
@@ -105,7 +105,7 @@ class Application:
                 if 'validator' in setting_data:
                     try:
                         if setting_data['validator'].lower() == 'boolean':
-                            setting_value = str(setting_value.upper() == 'TRUE').upper()
+                            setting_value = str(setting_value.upper() == str(True).upper()).upper()
                         elif setting_data['validator'].lower() == 'integer':
                             setting_value = str(int(setting_value))
                         elif setting_data['validator'].lower() == 'hexadecimal':
@@ -213,7 +213,7 @@ class Application:
                         for state in workflow['states']:
                             print(f"  adding state '{state['name']}' to workflow '{workflow['name']}'")
                             jobs = Jobs(state['jobs'], self.data)
-                            jobs.add(JobAction(state['actions'], self.data), 'peckus.workflow.job.actions')
+                            jobs.add(JobAction(state['actions'], self.data))
                             sm.AddState(state['name'], jobs.begin, jobs.update, jobs.finish)
                             for transition in state['transitions']:
                                 sm.AddTransition(state['name'], Conditions(transition['conditions'], self.data), transition['state'])
