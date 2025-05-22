@@ -144,6 +144,10 @@ What PECKUS does is to restrict access to the stored file(s) by means of verific
 3. Prevent modifications of the application, its configuration or the contained payload (files) after deployment has completed.
 
 
+# Libraries
+PECKUS uses [adafruit_ble](https://github.com/adafruit/Adafruit_CircuitPython_BLE) (MIT License) from the circuitpython bundle for BLE functionality and [CPStateMachine](https://github.com/bkuehner/CPStateMachine/) (BSD-3-clause license) as the FSM for workflow execution. Both libraries are copied into this repository for an easy installation process - they are located in the `CIRCUITPY/lib` directory.
+
+
 # Developer guidance
 TODO (probably something for the wiki)
 
