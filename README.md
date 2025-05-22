@@ -1,6 +1,5 @@
 PECKUS: **P**resence **E**nforcing **C**rypto-**K**ey **U**SB-**S**torage
 
-
 # tl;dr
 A (very small) USB mass-storage device that is only active when you want it to be.
 
@@ -50,6 +49,7 @@ Step ∞: Plug it in, wait for the red LED to turn on, push the button on the de
 1. Install a circuitpython firmware image that was compiled with `CIRCUITPY_SAFEMODE_PY=0`and `CIRCUITPY_SKIP_SAFE_MODE_WAIT=1` (take a look at `tools/build.sh` for that)
 2. Disable the circuitpython console (REPL) by setting `PECKUS_CONSOLE_USB` to `FALSE` in `settings.toml`
 3. Disable DEBUG mode by setting `PECKUS_DEBUG` to `FALSE` in `settings.toml` (`PECKUS_DEBUG_...` settings are all ignored if `PECKUS_DEBUG` is disabled)
+
 The only way (that I know of) to reset/recover the board after that is if the installed bootloader of the board can be triggered to go into flashing mode (via a quick double-reset on most boards).
 
 
@@ -99,6 +99,7 @@ The following table lists all implemented settings (as in entries in `settings.t
 | PECKUS_DEBUG | FALSE | Whether to activate debug mode (other `PECKUS_DEBUG_...` settings are evaluated only if `PECKUS_DEBUG`is set to `TRUE`) |
 | PECKUS_DEBUG_BOOTPY_FACTORYRESET_ON_POWERON | FALSE | Whether to factory-reset the device upon power-on (plugging it in), great for testing purposes |
 | PECKUS_DEBUG_CODEPY_WAIT4CONSOLE | FALSE | Whether the application code (`code.py`) should wait for a connection to the console/REPL before continuing, great for testing purposes |
+
 Please note that all settings should be set as TOML strings, validation of and conversion to target types (boolean, integer, hexadecimal, string) are implemented in the application. Use all-upper-case letters for strings used as booleans (`TRUE` or `FALSE`) |
 
 # Reference: LED codes (for default PECKUS workflow)
@@ -122,11 +123,12 @@ The following table lists the LED codes implemented in the default PECKUS workfl
 | ON  | ON    | ON  | PECKUS has finished deployment: safely eject/unmount the USB storage to avoid filesystem integrity warnings/errors - you are ready to go to ∞ |
 
 
-# Security assumptions and goals
+# Security
 Foremost: PECKUS **does not encrypt** any data at all. It is not an encrypted USB drive, the project name implies that (most likely) a crypto-key can be stored on the device. There are three reasons why encryption has not been implemented:
 1. There is no support for (really) securely storing cryptographic key material in circuitpython. All data (inlcuding the small filesystem) is stored inside the microcontroller in non-volatile-memory (NVM), any encryption/decryption keys would therefore have to be stored "right next" to the encrypted data.
 2. Cryptographic keys need to be generated randomly/unpredictably ("entropy"), but circuitpython doesn't provide any entropy sources.
 3. Always encrypting/decrypting data upon unlocking/relocking introduces an additional risk for failure (filesystem integrity, ...)
+
 What PECKUS does is to restrict access to the stored file(s) by means of verification steps regarding user presence (make sure to follow the steps detailed in the security warning in the 'User journey' section above). 
 
 ## Security assumptions/limits
