@@ -68,6 +68,7 @@ Please note that [Makerdiary also sell this board with a case](https://makerdiar
 As a circuitpython application, PECKUS should run on any supported board with circuitpython support for:
 1. USB device operations (for exposing its storage as a USB mass-storage device) - especially ESP32 pre-S3 boards lack this capability
 2. An internal non-volatile-memory (NVM), exposed by circuitpython as `microcontroller.nvm`, with at least 8KB - this should be available on all but the smallest boards
+3. At least 128bytes of MCU sleep/reset memory for carrying over the application state across resets (in circuitpython terms: alarm.sleep_memory)
 
 Obviously, for Bluetooth LE based presence-detection the board must support Bluetooth LE (BLE presence detection can be disabled by setting `PECKUS_UNLOCK_PRESENCE_BLE` to `FALSE` in `settings.toml` before deployment).
 
