@@ -116,9 +116,10 @@ The following table lists the LED codes implemented in the default PECKUS workfl
 | SLOW  | OFF   | OFF   | Not (yet?) used |
 | OFF   | SLOW  | OFF   | Only during deployment (configuration has been imported into NVM): Waiting for the payload file (`secret.txt` in the default configuration, see `settings.toml`) to be saved on the USB storage (read-write mode) |
 | OFF   | OFF   | SLOW  | Only during deployment (configuration has been imported into NVM) and with BLE presences configured: Waiting for BLE pairing - pair your bluetooth device to continue | 
-| ON  | OFF   | ON  | (results in purple on most boards) PECKUS is active (and locked): the BLE connection has been established (as part of the unlocking process), but a button-click has to be done for unlocking to occur |
+| ON  | OFF   | ON  | PECKUS is active (and locked): the BLE connection has been established (as part of the unlocking process), but a button-click has to be done for unlocking to occur |
 | OFF   | SLOW  | SLOW  | PECKUS is active (and unlocked): the BLE device has disconnected, the grace period (15 seconds by default) is active - reconnect quickly or wait for relocking to occur |
 | SLOW   | SLOW  | OFF  | PECKUS is active (and unlocked): this is a user "notice": the maximum unlocking timeout is approaching (less than 15 seconds remaining by default) - prepare for device going into locked state |
+| ON  | ON    | ON  | PECKUS has finished deployment: safely eject/unmount the USB storage to avoid filesystem integrity warnings/errors - you are ready to go to ∞ |
 
 
 # Security assumptions and goals
