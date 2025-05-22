@@ -131,8 +131,8 @@ What PECKUS does is to restrict access to the stored file(s) by means of verific
 ## Security assumptions/limits
 1. When storing your precious data (key files?) on a PECKUS device, you have wheighted the risks and benefits - the (new) risk of losing the device or having it stolen (vs. the same but for your computer), the risk of the device not working anymore (store a backup copy of your data somewhere safe!) and also: if you're using the Bluetooth-feature (you really should, otherwise anyone in possesion of the stick can unlock it): what if your bonded device (smartphone?) is lost/stolen - or even if by "fat-fingering" the BluetoothLE bonding is reset?
 2. You aren't looking to protect your data from resourceful/capable attackers (under the assumption that you adhered to the steps in the security warning above), there two ways to get your data:
-  1. to flash (if bootloader flash mode is user-accessible) another firmware that doesn't erase the NVM upon flashing and than extracts its data upon execution 
-  2. to unsolder the microcontroller (and thus the NVM) and than extract the NVM data
+   - to flash (if bootloader flash mode is user-accessible) another firmware that doesn't erase the NVM upon flashing and than extracts its data upon execution 
+   - to unsolder the microcontroller (and thus the NVM) and than extract the NVM data
 3. You (or in the context of a club/organisation/company: other people) are not side-stepping this "solution" by copying the contained files off of PECKUS onto the computer - this can't be prevented (by concept/design) and thus, it must be in the interest of the user to actually go through the (albeit small) hassle of using PECKUS.
 
 ## Security goals (constrained by the aforementioned assumptions/limits)
