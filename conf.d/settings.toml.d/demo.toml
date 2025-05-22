@@ -1,20 +1,17 @@
 ## DEMO configuration: 
-## - button-push for unlocking
-## - 90sec timout for relocking
-## - USB CDC serial (console/REPL) is enabled
-## - factory-reset upon power-on (every time after it was unplugged)
+## - button-push and BLE connection for unlocking
+## - 5min timout for automatic relocking, or if BLE connection is lost for 15secs
+## - USB CDC serial (console/REPL) is enabled - this might be your saving life-line during testing
 
 # application configuration
 PECKUS_APP_CONFIG_FILENAME="peckus.json"
 PECKUS_APP_PAYLOAD_FILENAME="secret.txt"
-
 
 # workflow-specific parameters: ./peckus.json (-> conf.d/peckus.json.d/default.json)
 PECKUS_UNLOCK_PRESENCE_BTN="TRUE"
 PECKUS_UNLOCK_PRESENCE_BTN_VALIDITY_SECS="30"
 PECKUS_UNLOCK_PRESENCE_BLE="TRUE"
 PECKUS_UNLOCK_PRESENCE_BLE_VALIDITY_SECS="30"
-
 PECKUS_RELOCK_TIMEOUT="TRUE"
 PECKUS_RELOCK_TIMEOUT_SECS="300"
 PECKUS_RELOCK_PRESENCE_BLE="TRUE"

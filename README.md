@@ -69,21 +69,11 @@ Please note that [Makerdiary also sell this board with a case](https://makerdiar
 As a circuitpython application, PECKUS should run on any supported board with circuitpython support for:
 1. USB device operations (for exposing its storage as a USB mass-storage device) - especially ESP32 pre-S3 boards lack this capability
 2. An internal non-volatile-memory (NVM), exposed by circuitpython as `microcontroller.nvm`, with at least 8KB - this should be available on all but the smallest boards
-3. At least 128bytes of MCU sleep/reset memory for carrying over the application state across resets (in circuitpython terms: alarm.sleep_memory)
+3. At least 128bytes of MCU sleep/reset memory for carrying over the application state across resets, exposed in circuitpython as `alarm.sleep_memory`
 
 Obviously, for Bluetooth LE based presence-detection the board must support Bluetooth LE (BLE presence detection can be disabled by setting `PECKUS_UNLOCK_PRESENCE_BLE` to `FALSE` in `settings.toml` before deployment).
 
 Another hardware dependency are the LED indicators, the current implementation uses the `board.LED_RED`, `board.LED_GREEN` and `board.LED_BLUE` objects - if they are not present the code will still run fine (exception handling, see `src/lib/workflow/job/led.py`), just without any LED indications.
-
-
-# Installation and deployment
-Files from this repository can be copied manually onto a CIRCUITPY drive (an already active circuitpython device), just copy the CIRCUITPY directory in this repository (copy with resolving symlinks though) and unmount the device, than un- and re-plug it. As an alternative, there is an installations script (`tools/install.sh`) - it will also copy those files but will also first create a new FAT12 filesystem on the device for a clean and known device baseline.
-
-Now the deployment begins: PECKUS loads the workflow configuration (as per `PECKUS_APP_CONFIG_FILENAME` in `settings.toml`), does parameter evaluation (see `parameter` section in the workflow file) and copies it to the NVM. If this is successful, it restarts and starts the provisioning steps (BLE pairing and putting the payload file on the device). Once that's completed, it restarts and enters the usage phase/workflows.
-
-**Important**: The default configuration (`settings.toml`) has DEBUG settings activated, the most relevant implications:
-- `PECKUS_DEBUG_BOOTPY_FACTORYRESET_ON_POWERON` is set to `TRUE`, therefore any unplugging of the device will reset the PECKUS configuration upon next power-on of the device (it will essentially erase all NVM data and thus be in the uninitialized state again); this is on purpose for evluation/testing purposes - for "production" usage, you'd would most likely change some parameters or even workflow logic anyhow.
-- `PECKUS_CONSOLE_USB` is activated (`TRUE`), so a connection to circuitpython console/REPL is possible - it is therefore possible to manipulate the device/application even once fully deployed (usage phase)
 
 
 # Reference: settings.toml (for the default PECKUS configuration)
@@ -138,15 +128,18 @@ Foremost: PECKUS **does not encrypt** any data at all. It is not an encrypted US
 3. Always encrypting/decrypting data upon unlocking/relocking introduces an additional risk for failure (filesystem integrity, ...)
 What PECKUS does is to restrict access to the stored file(s) by means of verification steps regarding user presence (make sure to follow the steps detailed in the security warning in the 'User journey' section above). 
 
-Security assumptions/limits:
-1. When storing your precious data (key files?) on a PECKUS device, you have wheighted the risks and benefits - the (new) risk of losing the device or having it stolen (vs. the same but for your computer), the risk of the device not working anymore (store a backup copy of your data somewhere safe!) and also: if you're using the Bluetooth-feature (you really should, otherwise anyone in possesion of the stick can unlock it): what if your bonded device (smartphone?) is lost/stolen - or even if by "fat-fingering" the BluetoothLE bonding is reset)?
-2. You aren't looking to protect your data from resourceful/capable attackers - the probably easiest way to get your data is to unsolder the microcontroller (and thus the NVM) and than extract the NVM data.
-3. You (or in the context of a club/organisation/company: other people) are not side-stepping this "solution" by copying the contained files off of PECKUS onto the computer - this can't be prevented (by concept/design) and thus, it must be in the interest of the user to actually go through the (albeit small) hassle of using this "solution".
+## Security assumptions/limits
+1. When storing your precious data (key files?) on a PECKUS device, you have wheighted the risks and benefits - the (new) risk of losing the device or having it stolen (vs. the same but for your computer), the risk of the device not working anymore (store a backup copy of your data somewhere safe!) and also: if you're using the Bluetooth-feature (you really should, otherwise anyone in possesion of the stick can unlock it): what if your bonded device (smartphone?) is lost/stolen - or even if by "fat-fingering" the BluetoothLE bonding is reset?
+2. You aren't looking to protect your data from resourceful/capable attackers (under the assumption that you adhered to the steps in the security warning above), there two ways to get your data:
+  1. to flash (if bootloader flash mode is user-accessible) another firmware that doesn't erase the NVM upon flashing and than extracts its data upon execution 
+  2. to unsolder the microcontroller (and thus the NVM) and than extract the NVM data
+3. You (or in the context of a club/organisation/company: other people) are not side-stepping this "solution" by copying the contained files off of PECKUS onto the computer - this can't be prevented (by concept/design) and thus, it must be in the interest of the user to actually go through the (albeit small) hassle of using PECKUS.
 
-Security goals (constrained by the aforementioned assumptions/limits):
+## Security goals (constrained by the aforementioned assumptions/limits)
 1. Prevent access to the payload (files) stored in PECKUS, unless the configured unlocking steps are successfully completed.
 2. Enforcement of re-locking criteria when PECKUS is unlocked.
 3. Prevent modifications of the application, its configuration or the contained payload (files) after deployment has completed.
+
 
 # Developer guidance
 TODO (probably something for the wiki)
