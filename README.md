@@ -33,7 +33,8 @@ The entire user journey consists of four phases (with the first three being the 
 1. Installation of circuitpython firmware on the board
 2. Installation of the PECKUS application on circuitpython
 3. Deployment of the payload and (only if configured) pairing of a Bluetooth LE device
-∞. Usage (unlocking, accessing the stored file(s), automatic relocking after timeout/user-absence)
+   
+&nbsp;&nbsp;&nbsp;∞. Usage (unlocking, accessing the stored file(s), automatic relocking after timeout/user-absence)
 
 Let's assume the (provided) default configuration: unlocking the device is achieved by pushing the button and establishing the Bluetooth LE connection (most likely: a smartphone).
 
