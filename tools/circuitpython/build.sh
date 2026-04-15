@@ -8,6 +8,9 @@ export CIRCUITPYTHON_SAFEMODE="${CIRCUITPYTHON_SAFEMODE:-1}"
 if [ "${CIRCUITPYTHON_SAFEMODE}" = "0" ]; then
 	export CIRCUITPYTHON_BUILD_SAFEMODE_PY="0"
 	export CIRCUITPYTHON_BUILD_SAFEMODE_SKIP="1"
+else
+	export CIRCUITPYTHON_BUILD_SAFEMODE_PY="1"
+	export CIRCUITPYTHON_BUILD_SAFEMODE_SKIP="0"
 fi
 
 CMD_BUILD_SH=`realpath "$0"`
@@ -27,7 +30,7 @@ fi
 
 cd "${DIR_CIRCUITPYTHON}"
 git status >/dev/null 2>/dev/null
-if [ $? -ne 0 -o "${DIR_CIRCUITPYTHON}" = "${DIR_CIRCUITPYTHON_DEFAULT}" ]; then
+if [ $? -ne 0 ]; then
 	git clone https://github.com/adafruit/circuitpython.git "${DIR_CIRCUITPYTHON}"
 fi
 git checkout --detach "${CIRCUITPYTHON_VERSION}"
@@ -43,14 +46,14 @@ podman build -t circuitpython-peckus -f build.Containerfile -v "${DIR_CIRCUITPYT
 	--build-arg CIRCUITPYTHON_PORT="${CIRCUITPYTHON_PORT}" \
 	--build-arg CIRCUITPYTHON_BOARD="${CIRCUITPYTHON_BOARD}"
 
-podman run -e "CIRCUITPYTHON_*" -v "${DIR_CIRCUITPYTHON}":"/circuitpython" -t circuitpython-peckus make V=0 BOARD="${CIRCUITPYTHON_BOARD}"
+podman run --rm -e "CIRCUITPYTHON_*" -v "${DIR_CIRCUITPYTHON}":"/circuitpython" -t circuitpython-peckus make clean all V=0 BOARD="${CIRCUITPYTHON_BOARD}"
 if [ "${CIRCUITPYTHON_BOARD}" = "makerdiary_nrf52840_mdk_usb_dongle" ]; then
-	podman run -v "${DIR_CIRCUITPYTHON}":"/circuitpython" -t circuitpython-peckus \
+	podman run --rm -v "${DIR_CIRCUITPYTHON}":"/circuitpython" -t circuitpython-peckus \
 	           /bin/sh -c '. /circuitpython/.venv/bin/activate ;
 	                       uf2conv -f 0xADA52840 -c -o "/circuitpython/circuitpython_'${CIRCUITPYTHON_VERSION}'.uf2" "build-'${CIRCUITPYTHON_BOARD}'/firmware.hex"'
 else
-	podman run -v "${DIR_CIRCUITPYTHON}":"/circuitpython" -t circuitpython-peckus \
-	           cp                          "/circuitpython/circuitpython_${CIRCUITPYTHON_VERSION}.uf2" "build-${CIRCUITPYTHON_BOARD}/firmware.uf2"
+	podman run --rm -v "${DIR_CIRCUITPYTHON}":"/circuitpython" -t circuitpython-peckus \
+	           /bin/sh -c 'cp                          "/circuitpython/circuitpython_'${CIRCUITPYTHON_VERSION}'.uf2" "build-'${CIRCUITPYTHON_BOARD}'/firmware.uf2"'
 fi
 echo " "
 if [ ! -f "${DIR_CIRCUITPYTHON}/circuitpython_${CIRCUITPYTHON_VERSION}.uf2" ]; then
@@ -59,4 +62,4 @@ if [ ! -f "${DIR_CIRCUITPYTHON}/circuitpython_${CIRCUITPYTHON_VERSION}.uf2" ]; t
 fi
 mv "${DIR_CIRCUITPYTHON}/circuitpython_${CIRCUITPYTHON_VERSION}.uf2" "${DIR_BUILD_SH}/build/"
 
-echo "build.sh: CircuitPython UF2 saved as 'circuitpython_${CIRCUITPYTHON_VERSION}.uf2' in '`dirname $0`/build'"
+echo "build.sh: CircuitPython UF2 (SAFEMODE=${CIRCUITPYTHON_SAFEMODE}) saved as 'circuitpython_${CIRCUITPYTHON_VERSION}.uf2' in '`dirname $0`/build'"
